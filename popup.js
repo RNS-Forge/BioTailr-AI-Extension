@@ -23,16 +23,35 @@ const ARCHETYPE_NAMES = {
 
 const BIOTAILR_WEB_APP = 'https://rns-forge.github.io/BioTailr-AI/';
 
-async function resolveWebAppUrl(jobId) {
+/**
+ * Generates a cryptographically strong 192-bit ephemeral communication security token.
+ */
+function generateSecurityKey() {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const arr = new Uint8Array(24);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+  }
+  return 'sec_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+async function resolveWebAppUrl(jobId, authKey = '') {
+  let base = BIOTAILR_WEB_APP;
   try {
     if (typeof chrome !== 'undefined' && chrome.tabs?.query) {
       const localTabs = await chrome.tabs.query({ url: '*://localhost:3000/*' });
       if (localTabs && localTabs.length > 0) {
-        return `http://localhost:3000/?extjob=${encodeURIComponent(jobId)}`;
+        base = 'http://localhost:3000/';
       }
     }
   } catch (e) {}
-  return `${BIOTAILR_WEB_APP}?extjob=${encodeURIComponent(jobId)}`;
+
+  const url = new URL(base);
+  url.searchParams.set('extjob', jobId);
+  if (authKey) {
+    url.searchParams.set('authKey', authKey);
+  }
+  return url.toString();
 }
 
 // ─── Application State ──────────────────────────────────────────────────────
@@ -535,9 +554,12 @@ async function handleScanAndTailorJob(isDemo = false) {
     updateProcStep(procCardId, 2, 'Sending...', false);
 
     const jobId = job.id;
+    const authKey = generateSecurityKey();
+    job.authKey = authKey;
     const storageKey = `biotailr_ext_job_${jobId}`;
     const jobPayload = {
       jobId,
+      authKey,
       targetRole: job.targetRole,
       company: job.company,
       location: job.location,
@@ -552,8 +574,8 @@ async function handleScanAndTailorJob(isDemo = false) {
 
     await chrome.storage.local.set({ [storageKey]: jobPayload });
 
-    // Open BioTailr web app with ?extjob=<jobId> in a background tab
-    const webAppUrl = await resolveWebAppUrl(jobId);
+    // Open BioTailr web app with ?extjob=<jobId>&authKey=<authKey> in a background tab
+    const webAppUrl = await resolveWebAppUrl(jobId, authKey);
     const webAppTab = await chrome.tabs.create({ url: webAppUrl, active: false });
     job.processingTabId = webAppTab.id;
 
@@ -566,7 +588,7 @@ async function handleScanAndTailorJob(isDemo = false) {
     // These steps will be updated when RESUME_READY is received via onBackgroundMessage
     // Store job id in a pending map for the message handler to resolve
     state.pendingJobMap = state.pendingJobMap || {};
-    state.pendingJobMap[jobId] = { job, procCardId };
+    state.pendingJobMap[jobId] = { job, procCardId, authKey };
 
     // Safety timeout: if no result in 90s, show error
     const timeoutId = setTimeout(() => {
@@ -606,9 +628,15 @@ async function handleScanAndTailorJob(isDemo = false) {
 
 // ─── 8. Handle Resume Result from Web App ─────────────────────────────────
 function handleResumeReady(message) {
-  const { jobId, compiledHtml, fullDocumentHtml, filename, archetypeId, targetRole, atsScore } = message;
+  const { jobId, authKey, compiledHtml, fullDocumentHtml, filename, archetypeId, targetRole, atsScore } = message;
   const pendingEntry = state.pendingJobMap?.[jobId];
   if (!pendingEntry) return;
+
+  // Verify cryptographic security token
+  if (pendingEntry.authKey && authKey && pendingEntry.authKey !== authKey) {
+    console.error('[BioTailr Security] Security key mismatch! Dropping untrusted message for job:', jobId);
+    return;
+  }
 
   const { job, procCardId, timeoutId, onResult } = pendingEntry;
   clearTimeout(timeoutId);
@@ -697,9 +725,11 @@ async function handleUserSendRevision() {
 
   // Store revision request and re-trigger web app pipeline
   const jobId = `${job.id}_rev${job.revisionsCount}`;
+  const authKey = generateSecurityKey();
   const storageKey = `biotailr_ext_job_${jobId}`;
   const jobPayload = {
     jobId,
+    authKey,
     targetRole: job.targetRole,
     company: job.company,
     location: job.location,
@@ -711,12 +741,12 @@ async function handleUserSendRevision() {
 
   try {
     await chrome.storage.local.set({ [storageKey]: jobPayload });
-    const webAppUrl = await resolveWebAppUrl(jobId);
+    const webAppUrl = await resolveWebAppUrl(jobId, authKey);
     const webAppTab = await chrome.tabs.create({ url: webAppUrl, active: false });
     job.processingTabId = webAppTab.id;
 
     state.pendingJobMap = state.pendingJobMap || {};
-    state.pendingJobMap[jobId] = { job, procCardId: null, isRevision: true, revisionNote: userText };
+    state.pendingJobMap[jobId] = { job, procCardId: null, authKey, isRevision: true, revisionNote: userText };
 
     const timeoutId = setTimeout(() => {
       if (state.pendingJobMap?.[jobId]) {

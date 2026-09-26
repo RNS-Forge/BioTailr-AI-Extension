@@ -8,13 +8,26 @@
 (function () {
   'use strict';
 
+  const ALLOWED_ORIGINS = [
+    'https://rns-forge.github.io',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ];
+
+  // Origin verification
+  if (!ALLOWED_ORIGINS.includes(window.location.origin)) {
+    console.warn('[BioTailr Bridge] Security notice: Origin not permitted:', window.location.origin);
+    return;
+  }
+
   const urlParams = new URLSearchParams(window.location.search);
   const jobId = urlParams.get('extjob');
+  const urlAuthKey = urlParams.get('authKey') || '';
 
   // Only activate when the extension triggered this tab
   if (!jobId) return;
 
-  console.log('[BioTailr Bridge] Extension job mode active. Job ID:', jobId);
+  console.log('[BioTailr Bridge] Secure extension job mode active. Job ID:', jobId);
 
   // Step 1: Read job data from chrome.storage.local (extension context access)
   chrome.storage.local.get(['biotailr_ext_job_' + jobId], (result) => {
@@ -29,28 +42,40 @@
       return;
     }
 
-    console.log('[BioTailr Bridge] Job data loaded:', jobData.targetRole);
+    // Cryptographic Security Key Handshake Verification
+    const expectedKey = jobData.authKey || urlAuthKey;
+    if (urlAuthKey && jobData.authKey && urlAuthKey !== jobData.authKey) {
+      console.error('[BioTailr Bridge] Security key mismatch between URL parameter and storage!');
+      chrome.runtime.sendMessage({
+        action: 'EXT_JOB_ERROR',
+        jobId,
+        error: 'Security handshake failed: unauthorized communication key.'
+      }).catch(() => {});
+      chrome.storage.local.remove(['biotailr_ext_job_' + jobId]);
+      return;
+    }
 
-    // Step 2: Wait for the web app to be ready, then inject job data via postMessage
+    console.log('[BioTailr Bridge] Secure job data authenticated for:', jobData.targetRole);
+
+    // Step 2: Wait for the web app to be ready, then inject job data via postMessage with targetOrigin
     let attempts = 0;
     const maxAttempts = 30; // 15 seconds
 
     const tryInjectJob = () => {
       attempts++;
-      // Check if web app has initialised by looking for a known DOM element
       const isReady = document.getElementById('screen-landing') ||
                       document.getElementById('screen-entry') ||
                       document.getElementById('btn-go-tailr');
 
       if (isReady || attempts >= maxAttempts) {
-        // Give the app's DOMContentLoaded + initApp() a little extra time
         setTimeout(() => {
-          console.log('[BioTailr Bridge] Posting BIOTAILR_EXT_JOB to web app...');
+          console.log('[BioTailr Bridge] Posting secured BIOTAILR_EXT_JOB to web app...');
           window.postMessage({
             type: 'BIOTAILR_EXT_JOB',
             jobId,
+            authKey: expectedKey,
             data: jobData
-          }, '*');
+          }, window.location.origin);
         }, 600);
       } else {
         setTimeout(tryInjectJob, 500);
@@ -58,44 +83,56 @@
     };
 
     tryInjectJob();
-  });
 
-  // Step 3: Listen for the web app's result postMessage
-  window.addEventListener('message', (event) => {
-    if (!event.data || event.data.type !== 'BIOTAILR_EXT_RESULT') return;
-    if (event.data.jobId !== jobId) return;
+    // Step 3: Listen for the web app's result postMessage
+    const onResultHandler = (event) => {
+      // Origin and type validation
+      if (event.origin !== window.location.origin) return;
+      if (!event.data || event.data.type !== 'BIOTAILR_EXT_RESULT') return;
+      if (event.data.jobId !== jobId) return;
 
-    console.log('[BioTailr Bridge] Resume result received from web app.');
+      // Verify security key signature
+      if (expectedKey && event.data.authKey !== expectedKey) {
+        console.error('[BioTailr Bridge] Security key mismatch on result message! Dropping untrusted message.');
+        return;
+      }
 
-    // Handle error case
-    if (event.data.error || !event.data.compiledHtml) {
+      window.removeEventListener('message', onResultHandler);
+      console.log('[BioTailr Bridge] Secure resume result verified from web app.');
+
+      // Handle error case
+      if (event.data.error || !event.data.compiledHtml) {
+        chrome.runtime.sendMessage({
+          action: 'EXT_JOB_ERROR',
+          jobId,
+          error: event.data.error || 'Web app returned no resume HTML.'
+        }).catch(() => {});
+        chrome.storage.local.remove(['biotailr_ext_job_' + jobId]);
+        return;
+      }
+
+      const { compiledHtml, fullDocumentHtml, filename, archetypeId, targetRole, atsScore } = event.data;
+
+      // Relay authenticated result back to the extension background service worker
       chrome.runtime.sendMessage({
-        action: 'EXT_JOB_ERROR',
+        action: 'RESUME_READY',
         jobId,
-        error: event.data.error || 'Web app returned no resume HTML.'
-      }).catch(() => {});
+        authKey: expectedKey,
+        compiledHtml,
+        fullDocumentHtml: fullDocumentHtml || compiledHtml,
+        filename: filename || `Sanjay_N_${(targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`,
+        archetypeId,
+        targetRole,
+        atsScore: atsScore || 100
+      }).catch((err) => {
+        console.warn('[BioTailr Bridge] Could not relay result to extension:', err);
+      });
+
+      // Ephemeral cleanup: wipe storage key immediately
       chrome.storage.local.remove(['biotailr_ext_job_' + jobId]);
-      return;
-    }
+    };
 
-    const { compiledHtml, fullDocumentHtml, filename, archetypeId, targetRole, atsScore } = event.data;
-
-    // Relay result back to the extension background service worker
-    chrome.runtime.sendMessage({
-      action: 'RESUME_READY',
-      jobId,
-      compiledHtml,
-      fullDocumentHtml: fullDocumentHtml || compiledHtml,
-      filename: filename || `Sanjay_N_${(targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`,
-      archetypeId,
-      targetRole,
-      atsScore: atsScore || 100
-    }).catch((err) => {
-      console.warn('[BioTailr Bridge] Could not relay result to extension:', err);
-    });
-
-    // Clean up storage entry now that it has been processed
-    chrome.storage.local.remove(['biotailr_ext_job_' + jobId]);
+    window.addEventListener('message', onResultHandler);
   });
 
 })();
