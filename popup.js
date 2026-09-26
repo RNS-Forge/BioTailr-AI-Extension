@@ -23,6 +23,18 @@ const ARCHETYPE_NAMES = {
 
 const BIOTAILR_WEB_APP = 'https://rns-forge.github.io/BioTailr-AI/';
 
+async function resolveWebAppUrl(jobId) {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.tabs?.query) {
+      const localTabs = await chrome.tabs.query({ url: '*://localhost:3000/*' });
+      if (localTabs && localTabs.length > 0) {
+        return `http://localhost:3000/?extjob=${encodeURIComponent(jobId)}`;
+      }
+    }
+  } catch (e) {}
+  return `${BIOTAILR_WEB_APP}?extjob=${encodeURIComponent(jobId)}`;
+}
+
 // ─── Application State ──────────────────────────────────────────────────────
 const state = {
   jobs: [],
@@ -541,7 +553,7 @@ async function handleScanAndTailorJob(isDemo = false) {
     await chrome.storage.local.set({ [storageKey]: jobPayload });
 
     // Open BioTailr web app with ?extjob=<jobId> in a background tab
-    const webAppUrl = `${BIOTAILR_WEB_APP}?extjob=${encodeURIComponent(jobId)}`;
+    const webAppUrl = await resolveWebAppUrl(jobId);
     const webAppTab = await chrome.tabs.create({ url: webAppUrl, active: false });
     job.processingTabId = webAppTab.id;
 
@@ -594,7 +606,7 @@ async function handleScanAndTailorJob(isDemo = false) {
 
 // ─── 8. Handle Resume Result from Web App ─────────────────────────────────
 function handleResumeReady(message) {
-  const { jobId, compiledHtml, archetypeId, targetRole, atsScore } = message;
+  const { jobId, compiledHtml, fullDocumentHtml, filename, archetypeId, targetRole, atsScore } = message;
   const pendingEntry = state.pendingJobMap?.[jobId];
   if (!pendingEntry) return;
 
@@ -614,6 +626,8 @@ function handleResumeReady(message) {
 
   setTimeout(async () => {
     job.compiledHtml = compiledHtml;
+    job.fullDocumentHtml = fullDocumentHtml || compiledHtml;
+    job.filename = filename || `Sanjay_N_${(targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`;
     job.archetypeId = archetypeId || 'developer';
     job.atsScore = atsScore || 100;
     job.status = 'ready';
@@ -697,7 +711,7 @@ async function handleUserSendRevision() {
 
   try {
     await chrome.storage.local.set({ [storageKey]: jobPayload });
-    const webAppUrl = `${BIOTAILR_WEB_APP}?extjob=${encodeURIComponent(jobId)}`;
+    const webAppUrl = await resolveWebAppUrl(jobId);
     const webAppTab = await chrome.tabs.create({ url: webAppUrl, active: false });
     job.processingTabId = webAppTab.id;
 
@@ -720,6 +734,8 @@ async function handleUserSendRevision() {
     origReady.onResult = (msg) => {
       hideTypingIndicator();
       job.compiledHtml = msg.compiledHtml;
+      job.fullDocumentHtml = msg.fullDocumentHtml || msg.compiledHtml;
+      if (msg.filename) job.filename = msg.filename;
       job.revisionsCount++;
       if (job.processingTabId) { chrome.tabs.remove(job.processingTabId).catch(() => {}); job.processingTabId = null; }
       renderTailoredResumeCard(job, userText);
@@ -846,12 +862,12 @@ function bindCardDownloadButtons() {
 }
 
 function executeDirectPdfDownload(job) {
+  const filename = `${job.filename || `Sanjay_N_${(job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`}.pdf`;
   const sandbox = document.getElementById('hidden-resume-sandbox');
   if (!sandbox) return;
 
-  sandbox.innerHTML = job.compiledHtml;
-  const targetElement = sandbox.querySelector('#resume-document') || sandbox;
-  const filename = `Sanjay_N_${(job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_100_ATS.pdf`;
+  sandbox.innerHTML = job.fullDocumentHtml || job.compiledHtml;
+  const targetElement = sandbox.querySelector('.resume-sheet') || sandbox.querySelector('#resume-document') || sandbox;
 
   if (typeof window.html2pdf !== 'undefined') {
     const opt = {
@@ -870,38 +886,15 @@ function executeDirectPdfDownload(job) {
 }
 
 function executeDirectHtmlDownload(job) {
-  const filename = `Sanjay_N_${(job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_100_ATS.html`;
-  const fullHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sanjay N – 100% ATS Resume – ${escapeHtml(job.targetRole)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-  @page { size: A4; margin: 0; }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #f1f5f9; font-family: 'Open Sans', Calibri, Arial, sans-serif; font-size: 10pt; }
-  body, body * { color: #000000 !important; }
-  .resume-sheet { width: 210mm; height: 297mm; max-height: 297mm; overflow: hidden; margin: 16px auto; padding: 13pt 32pt 11pt 32pt; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,.15); display: flex; flex-direction: column; justify-content: flex-start; }
-  a { color: #000000 !important; text-decoration: none; }
-  h1 { font-family: 'Times New Roman', serif; font-size: 20pt; margin: 0; font-weight: bold; }
-  h2 { font-size: 10.5pt; font-weight: bold; border-bottom: 0.75pt solid #000000; margin: 8pt 0 4pt 0; text-transform: uppercase; }
-  ul { margin: 2pt 0 4pt 14pt; padding: 0; }
-  li { margin-bottom: 2pt; }
-  @media print { .resume-sheet { margin: 0 !important; box-shadow: none !important; } }
-</style>
-</head>
-<body>
-${job.compiledHtml}
-</body>
-</html>`;
-
-  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+  const filename = `${job.filename || `Sanjay_N_${(job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`}.html`;
+  const content = job.fullDocumentHtml || job.compiledHtml;
+  const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click();
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }

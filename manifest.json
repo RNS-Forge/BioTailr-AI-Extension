@@ -33,10 +33,18 @@
       "matches": ["http://*/*", "https://*/*"],
       "js": ["content.js"],
       "run_at": "document_idle",
-      "exclude_matches": ["https://rns-forge.github.io/BioTailr-AI/*"]
+      "exclude_matches": [
+        "https://rns-forge.github.io/BioTailr-AI/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*"
+      ]
     },
     {
-      "matches": ["https://rns-forge.github.io/BioTailr-AI/*"],
+      "matches": [
+        "https://rns-forge.github.io/BioTailr-AI/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*"
+      ],
       "js": ["content-webapp.js"],
       "run_at": "document_start"
     }

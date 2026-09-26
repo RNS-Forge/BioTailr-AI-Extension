@@ -78,13 +78,15 @@
       return;
     }
 
-    const { compiledHtml, archetypeId, targetRole, atsScore } = event.data;
+    const { compiledHtml, fullDocumentHtml, filename, archetypeId, targetRole, atsScore } = event.data;
 
     // Relay result back to the extension background service worker
     chrome.runtime.sendMessage({
       action: 'RESUME_READY',
       jobId,
       compiledHtml,
+      fullDocumentHtml: fullDocumentHtml || compiledHtml,
+      filename: filename || `Sanjay_N_${(targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`,
       archetypeId,
       targetRole,
       atsScore: atsScore || 100
