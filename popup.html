@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioTailr AI - 100% ATS Resume Tailoring Engine</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="engine/resume-templates.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Local HTML2PDF library for strict MV3 compliance -->
+  <script src="lib/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+  <div class="extension-container">
+    <!-- Header -->
+    <header class="ext-header">
+      <div class="brand-wrap">
+        <svg class="brand-logo-svg" width="26" height="26" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Document Outline -->
+          <rect x="180" y="45" width="245" height="400" rx="8" stroke="#1e1b78" stroke-width="20" stroke-linejoin="round" />
+          <line x1="225" y1="100" x2="385" y2="100" stroke="#1e1b78" stroke-width="16" stroke-linecap="round" />
+          <line x1="225" y1="140" x2="385" y2="140" stroke="#1e1b78" stroke-width="16" stroke-linecap="round" />
+          <!-- Letter B -->
+          <line x1="180" y1="185" x2="180" y2="405" stroke="#1e1b78" stroke-width="20" stroke-linecap="round" />
+          <path d="M 180 185 L 265 185 C 322 185, 322 290, 265 290 L 180 290" stroke="#1e1b78" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M 180 290 L 280 290 C 348 290, 348 405, 280 405 L 180 405" stroke="#1e1b78" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+          <!-- Needle -->
+          <path d="M 102 22 C 112 22, 112 55, 112 110 L 105 465 C 102 492, 98 492, 95 465 L 88 110 C 88 55, 88 22, 98 22 Z" fill="#1e1b78" />
+          <rect x="97" y="60" width="7" height="38" rx="3.5" fill="#ffffff" />
+          <!-- Turquoise Hook Thread -->
+          <path d="M 320 292 C 268 292, 230 335, 195 315 C 160 295, 185 262, 248 262 C 305 262, 330 300, 278 322 C 222 342, 172 305, 156 235 C 140 168, 175 115, 122 75 C 105 62, 78 40, 50 58 C 26 74, 22 118, 46 150 C 64 172, 82 155, 78 132" stroke="#00b49f" stroke-width="16" stroke-linecap="round" fill="none" />
+        </svg>
+        <div class="brand-info">
+          <span class="brand-title"><span class="navy">BioTailr</span><span class="teal"> AI</span></span>
+          <span class="brand-tag">ATS Engine</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <a href="https://rns-forge.github.io/BioTailr-AI/" target="_blank" class="header-link-btn" title="Open BioTailr AI Web Application">
+          <span>Web App</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        <button class="header-close-btn" id="btn-close-extension" title="Close BioTailr Side Panel">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Job Manner Tabs (Multi-Job Queue) -->
+    <nav class="job-tabs-bar" id="job-tabs-bar">
+      <div class="job-tabs-list" id="job-tabs-list">
+        <!-- Dynamically injected job tabs -->
+      </div>
+      <button class="btn-new-job-tab" id="btn-add-new-job" title="Scan Another Job in New Job Slot">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>New Job</span>
+      </button>
+    </nav>
+
+    <!-- Main Viewport -->
+    <main class="chat-viewport" id="chat-viewport">
+      <!-- 1. Center Scan Hero (Shown when active job is not yet scanned) -->
+      <section class="scan-hero" id="scan-hero">
+        <div class="hero-brand-symbol">
+          <svg class="official-hero-svg" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="180" y="45" width="245" height="400" rx="8" stroke="#1e1b78" stroke-width="16" stroke-linejoin="round" />
+            <line x1="225" y1="100" x2="385" y2="100" stroke="#1e1b78" stroke-width="13" stroke-linecap="round" />
+            <line x1="225" y1="140" x2="385" y2="140" stroke="#1e1b78" stroke-width="13" stroke-linecap="round" />
+            <line x1="225" y1="180" x2="385" y2="180" stroke="#1e1b78" stroke-width="13" stroke-linecap="round" />
+            <line x1="180" y1="185" x2="180" y2="405" stroke="#1e1b78" stroke-width="17" stroke-linecap="round" />
+            <path d="M 180 185 L 265 185 C 322 185, 322 290, 265 290 L 180 290" stroke="#1e1b78" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M 180 290 L 280 290 C 348 290, 348 405, 280 405 L 180 405" stroke="#1e1b78" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M 102 22 C 112 22, 112 55, 112 110 L 105 465 C 102 492, 98 492, 95 465 L 88 110 C 88 55, 88 22, 98 22 Z" fill="#1e1b78" />
+            <rect x="97" y="60" width="7" height="38" rx="3.5" fill="#ffffff" />
+            <path class="hero-animated-thread" d="M 320 292 C 268 292, 230 335, 195 315 C 160 295, 185 262, 248 262 C 305 262, 330 300, 278 322 C 222 342, 172 305, 156 235 C 140 168, 175 115, 122 75 C 105 62, 78 40, 50 58 C 26 74, 22 118, 46 150 C 64 172, 82 155, 78 132" stroke="#00b49f" stroke-width="14" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+
+        <!-- Real-Time Page Verification Card -->
+        <div class="page-detection-card" id="page-detection-card">
+          <div class="detection-header">
+            <span class="detection-status-dot" id="detection-status-dot"></span>
+            <span class="detection-status-label" id="detection-status-label">Analyzing active tab...</span>
+          </div>
+          <div class="detection-details" id="detection-details">
+            <span id="tab-url-text">Checking URL...</span>
+          </div>
+        </div>
+
+        <!-- Executive Scan Console Button -->
+        <div class="executive-scan-wrapper">
+          <button class="executive-scan-btn" id="btn-center-scan" disabled>
+            <div class="btn-scan-glow"></div>
+            <div class="btn-scan-content">
+              <div class="btn-scan-icon-box">
+                <svg class="scan-radar-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="2" x2="12" y2="12"/>
+                  <line x1="12" y1="12" x2="19" y2="19"/>
+                  <path d="M12 2a10 10 0 0 1 10 10"/>
+                </svg>
+              </div>
+              <div class="btn-scan-text-group">
+                <span class="btn-primary-title" id="scan-btn-title">NAVIGATE TO A JOB PAGE</span>
+                <span class="btn-secondary-sub" id="scan-btn-sub">Open any job posting on LinkedIn, Indeed, etc.</span>
+              </div>
+              <div class="btn-scan-arrow" id="scan-btn-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <!-- Helpful Non-Job Page Prompt -->
+        <div class="non-job-notice-box" id="non-job-notice-box">
+          <div class="notice-text">
+            <strong>Job Page Required:</strong> The scan feature activates exclusively when a job posting or career listing is detected.
+          </div>
+          <div class="notice-quick-links">
+            <button type="button" class="btn-demo-test" id="btn-demo-test">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+              <span>Test with Demo SDE Role</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Active Job Chat & Stream View (Shown once scanning / completed) -->
+      <section class="messages-list" id="messages-list" style="display: none;">
+        <!-- Dynamic chat cards, processing state, and resume cards injected here -->
+      </section>
+    </main>
+
+    <!-- Hidden Offscreen Container for PDF rendering -->
+    <div id="hidden-resume-sandbox" style="position: absolute; left: -9999px; top: -9999px; width: 210mm;"></div>
+
+    <!-- Chat Box Footer (Disabled until scan completes) -->
+    <footer class="ext-footer">
+      <div class="chat-status-bar" id="chat-status-bar">
+        <svg class="status-icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span id="chat-status-label">Scan a job page to activate the AI tailoring chat</span>
+      </div>
+
+      <div class="chat-input-wrapper">
+        <textarea 
+          id="chat-input" 
+          class="chat-input-field" 
+          rows="1" 
+          placeholder="Scan a job page to enable AI tailoring assistant..." 
+          disabled
+        ></textarea>
+        <button class="send-btn" id="btn-send" title="Send revision prompt" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

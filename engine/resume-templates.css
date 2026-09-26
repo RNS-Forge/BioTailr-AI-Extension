@@ -1,0 +1,690 @@
+/* =========================================================
+   BioTailr AI - Authentic Human-Made Resume Stylesheet
+   Pure Black Text (#000000), Executive Serif & Clean Sans Typography,
+   Standard ATS Single-Column Layout, Zero Color Distortion.
+   ========================================================= */
+
+.resume-sheet {
+  --ink: #000000;
+  --rule: #1c1c1c;
+  --sheet: #ffffff;
+  --body-font: 'Open Sans', 'Segoe UI', Calibri, Arial, sans-serif;
+  --meta-font: 'Inter', 'Open Sans', 'Segoe UI', Arial, sans-serif;
+  --name-font: 'Times New Roman', Times, 'Liberation Serif', serif;
+
+  width: 210mm;
+  max-width: 210mm;
+  height: 297mm;
+  max-height: 297mm;
+  overflow: hidden;
+  margin: 0 auto;
+  padding: 13pt 32pt 11pt 32pt;
+  background: var(--sheet);
+  color: var(--ink) !important;
+  font-family: var(--body-font);
+  font-size: 9.0pt;
+  line-height: 1.28;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.resume-sheet > header,
+.resume-sheet > section {
+  flex-shrink: 0;
+}
+
+/* Enforce pure black text across default developer resume elements */
+.resume-sheet:not(.archetype-manufacturing) {
+  color: #000000;
+}
+
+.resume-sheet:not(.archetype-manufacturing) h1,
+.resume-sheet:not(.archetype-manufacturing) h2,
+.resume-sheet:not(.archetype-manufacturing) h3,
+.resume-sheet:not(.archetype-manufacturing) p,
+.resume-sheet:not(.archetype-manufacturing) span,
+.resume-sheet:not(.archetype-manufacturing) li,
+.resume-sheet:not(.archetype-manufacturing) b,
+.resume-sheet:not(.archetype-manufacturing) strong,
+.resume-sheet:not(.archetype-manufacturing) a {
+  color: #000000;
+}
+
+.resume-sheet a.u,
+.resume-sheet a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Header ---------- */
+.resume-sheet .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 5pt;
+  border-bottom: 0.75pt solid var(--rule);
+  margin-bottom: 2pt;
+}
+
+.resume-sheet .name {
+  margin: 0;
+  font-family: var(--name-font);
+  font-weight: 700;
+  font-size: 21pt;
+  line-height: 1.1;
+  letter-spacing: 0.2pt;
+  color: #000000 !important;
+}
+
+.resume-sheet .role {
+  margin: 2pt 0 0;
+  font-family: var(--meta-font);
+  font-size: 10pt;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #000000 !important;
+}
+
+.resume-sheet .contact {
+  display: grid;
+  grid-template-columns: 120pt auto;
+  column-gap: 0;
+  margin-top: 1pt;
+  font-family: var(--meta-font);
+  font-size: 7.8pt;
+  line-height: 1.32;
+  color: #000000 !important;
+}
+
+.resume-sheet .contact b {
+  font-weight: 700;
+  color: #000000 !important;
+}
+
+.resume-sheet .contact .wide {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Sections ---------- */
+.resume-sheet section {
+  padding: 2.5pt 0 3pt;
+  border-bottom: 0.6pt solid var(--rule);
+}
+
+.resume-sheet section:last-of-type {
+  border-bottom: 0;
+}
+
+.resume-sheet h2 {
+  margin: 0 0 2pt;
+  font-family: var(--body-font);
+  font-size: 10.5pt;
+  font-weight: 700;
+  line-height: 1.2;
+  padding-left: 2pt;
+  text-transform: uppercase;
+  color: #000000 !important;
+}
+
+.resume-sheet p.summary {
+  margin: 0;
+  padding-left: 2pt;
+  font-size: 9.0pt;
+  line-height: 1.28;
+  text-align: justify;
+  color: #000000 !important;
+}
+
+.resume-sheet ul {
+  margin: 0;
+  padding-left: 17pt;
+  list-style: disc;
+}
+
+.resume-sheet li {
+  font-size: 8.8pt;
+  line-height: 1.25;
+  padding-left: 0;
+  margin-bottom: 0.8pt;
+  color: #000000 !important;
+}
+
+.resume-sheet li::marker {
+  font-size: 7.5pt;
+  color: #000000 !important;
+}
+
+/* Skills Category List */
+.resume-sheet .skills-cat-list {
+  list-style: none;
+  padding-left: 2pt;
+  margin: 0;
+}
+
+.resume-sheet .skills-cat-list li {
+  margin-bottom: 1pt;
+  line-height: 1.26;
+  font-size: 8.8pt;
+}
+
+.resume-sheet .skills-cat-list b {
+  font-weight: 700;
+}
+
+/* Experience Entries */
+.resume-sheet .exp-entry {
+  margin-top: 2.5pt;
+}
+
+.resume-sheet .exp-entry:first-of-type {
+  margin-top: 0;
+}
+
+/* Primary line: Company & Role on left, Period on right */
+.resume-sheet .exp-row-primary,
+.resume-sheet .entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+  gap: 12pt;
+  padding-left: 2pt;
+  font-size: 9.8pt;
+  line-height: 1.35;
+  color: #000000 !important;
+}
+
+.resume-sheet .exp-company-role {
+  font-weight: 700;
+  color: #000000 !important;
+}
+
+.resume-sheet .exp-company-role b {
+  font-weight: 700;
+}
+
+.resume-sheet .exp-period.when,
+.resume-sheet .entry-head .when {
+  white-space: nowrap;
+  font-weight: 700;
+  text-align: right;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: #000000 !important;
+}
+
+/* Secondary line: Project on left, Location on right */
+.resume-sheet .exp-row-secondary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+  padding-left: 2pt;
+  margin-top: 0.5pt;
+  font-size: 9pt;
+  color: #000000 !important;
+}
+
+.resume-sheet .exp-project {
+  font-style: normal;
+  color: #000000 !important;
+}
+
+.resume-sheet .exp-project em {
+  font-style: italic;
+}
+
+.resume-sheet .exp-location {
+  text-align: right;
+  white-space: nowrap;
+  margin-left: auto;
+  font-weight: 600;
+  color: #000000 !important;
+}
+
+.resume-sheet .company-note {
+  margin: 1.5pt 0 2pt 2pt;
+  font-size: 8.8pt;
+  font-style: italic;
+  color: #000000 !important;
+}
+
+.resume-sheet .exp-bullets,
+.resume-sheet ul {
+  margin: 1pt 0 0;
+  padding-left: 17pt;
+  list-style: disc;
+}
+
+.resume-sheet .exp-bullets li,
+.resume-sheet ul li {
+  margin-bottom: 0.8pt;
+  line-height: 1.25;
+}
+
+/* Projects List */
+.resume-sheet .projects-list {
+  margin: 0;
+  padding-left: 17pt;
+}
+
+.resume-sheet .projects-list li {
+  margin-bottom: 1pt;
+  line-height: 1.25;
+  font-size: 8.8pt;
+}
+
+.resume-sheet .projects-list b {
+  font-weight: 700;
+}
+
+/* Education: Clean 2-line layout solving date collision */
+.resume-sheet .edu-entry {
+  margin-top: 2pt;
+}
+
+.resume-sheet .edu-entry:first-of-type {
+  margin-top: 0;
+}
+
+.resume-sheet .edu-row-primary,
+.resume-sheet .edu-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+  gap: 12pt;
+  padding-left: 2pt;
+  font-size: 9.8pt;
+  line-height: 1.35;
+  color: #000000 !important;
+}
+
+.resume-sheet .edu-degree {
+  font-weight: 700;
+}
+
+.resume-sheet .edu-year.when,
+.resume-sheet .edu-head .when {
+  font-weight: 700;
+  white-space: nowrap;
+  text-align: right;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: #000000 !important;
+}
+
+.resume-sheet .edu-row-secondary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+  padding-left: 2pt;
+  margin-top: 0.5pt;
+  font-size: 9.2pt;
+  color: #000000 !important;
+}
+
+.resume-sheet .edu-institution {
+  color: #000000 !important;
+}
+
+.resume-sheet .edu-location {
+  text-align: right;
+  white-space: nowrap;
+  margin-left: auto;
+  font-style: italic;
+  color: #000000 !important;
+}
+
+.resume-sheet .edu-bullets {
+  margin-top: 1.5pt;
+  padding-left: 20pt;
+}
+
+.resume-sheet .edu-bullets li {
+  margin-bottom: 1pt;
+}
+
+/* Live In-Place Editing on Sheet */
+.resume-sheet.live-editing [contenteditable="true"] {
+  outline: 1px dashed rgba(0, 180, 159, 0.45);
+  outline-offset: 2px;
+  border-radius: 2px;
+  cursor: text;
+  transition: all 0.15s ease;
+}
+
+.resume-sheet.live-editing [contenteditable="true"]:hover {
+  outline-color: var(--brand-teal);
+  background: rgba(0, 180, 159, 0.03);
+}
+
+.resume-sheet.live-editing [contenteditable="true"]:focus {
+  outline: 2px solid var(--brand-teal);
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(0, 180, 159, 0.25);
+}
+
+/* Discreet BioTailr notice for screen preview only */
+.resume-sheet .ats-pruning-notice {
+  background: #f1f5f9;
+  border-left: 3px solid #000000;
+  padding: 4pt 8pt;
+  margin: 2pt 0 4pt 2pt;
+  font-size: 8.5pt;
+  color: #333333 !important;
+}
+
+/* ---------- Small Screen Viewport Adjustments ---------- */
+@media screen and (max-width: 860px) {
+  .resume-sheet {
+    padding: 16px 16px;
+  }
+  .resume-sheet .head {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .resume-sheet .contact {
+    grid-template-columns: auto;
+    font-size: 9pt;
+  }
+  .resume-sheet .entry-head {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  html, body {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+  .bg-canvas-grid, .landing-nav, .studio-header, .studio-left-sidebar, .processing-overlay, .modal-backdrop, .ats-pruning-notice {
+    display: none !important;
+  }
+  .studio-main-grid {
+    display: block !important;
+    height: auto !important;
+  }
+  .studio-right-canvas {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .a4-paper-container {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+  }
+  .resume-sheet {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
+    padding: 14pt 30pt 12pt 30pt !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+/* =========================================================
+   STYLE 1: MANUFACTURING & QUALITY INSPECTION STYLE
+   Mirroring resume html/Manufacturing.html
+   ========================================================= */
+.resume-sheet.archetype-manufacturing {
+  font-family: Calibri, "Segoe UI", Carlito, Arial, sans-serif !important;
+  font-size: 10pt !important;
+  line-height: 1.32 !important;
+  color: #111111 !important;
+  padding: 16pt 28pt 14pt 28pt !important;
+  min-height: 297mm !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+}
+
+.resume-sheet.archetype-manufacturing header {
+  text-align: center;
+  margin-bottom: 8pt;
+}
+
+.resume-sheet.archetype-manufacturing header h1 {
+  margin: 0;
+  font-size: 24pt;
+  font-weight: 700;
+  color: #1F3A5F !important;
+  letter-spacing: 0.5px;
+}
+
+.resume-sheet.archetype-manufacturing header .role {
+  margin: 2px 0 4px;
+  font-size: 11pt;
+  color: #333333 !important;
+  font-weight: 400;
+}
+
+.resume-sheet.archetype-manufacturing header .contact {
+  margin: 0;
+  font-size: 9.5pt;
+  color: #333333 !important;
+  display: block;
+}
+
+.resume-sheet.archetype-manufacturing header .contact span + span::before {
+  content: "|";
+  margin: 0 8px;
+  color: #666666;
+}
+
+.resume-sheet.archetype-manufacturing section {
+  padding: 3pt 0 4pt !important;
+  border-bottom: none !important;
+}
+
+.resume-sheet.archetype-manufacturing h2 {
+  margin: 8pt 0 4pt !important;
+  padding-bottom: 2px !important;
+  font-size: 11.5pt !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  color: #1F3A5F !important;
+  border-bottom: 2px solid #1F3A5F !important;
+  background: transparent !important;
+}
+
+.resume-sheet.archetype-manufacturing .row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  margin-top: 4pt;
+  font-weight: 700;
+  font-size: 10.5pt;
+  color: #111111 !important;
+}
+
+.resume-sheet.archetype-manufacturing .row .title {
+  font-weight: 700;
+  color: #111111 !important;
+}
+
+.resume-sheet.archetype-manufacturing .row .date {
+  text-align: right;
+  white-space: nowrap;
+  color: #111111 !important;
+}
+
+.resume-sheet.archetype-manufacturing .company-note {
+  margin: 1pt 0 3pt !important;
+  font-style: italic !important;
+  font-size: 9pt !important;
+  color: #444444 !important;
+}
+
+.resume-sheet.archetype-manufacturing ul {
+  margin: 2pt 0 0 !important;
+  padding-left: 18px !important;
+  list-style: disc !important;
+}
+
+.resume-sheet.archetype-manufacturing li {
+  margin-bottom: 2pt !important;
+  line-height: 1.32 !important;
+  color: #111111 !important;
+}
+
+.resume-sheet.archetype-manufacturing .edu-detail {
+  margin: 1pt 0 4pt;
+  font-size: 9.5pt;
+  color: #333333 !important;
+}
+
+/* =========================================================
+   STYLE 2: COMMUNICATION, BPO & VOICE PROCESS STYLE
+   Mirroring resume html/Communication Resume.html
+   ========================================================= */
+.resume-sheet.archetype-communication {
+  font-family: 'DM Sans', 'Segoe UI', Arial, sans-serif !important;
+  font-size: 10.5pt !important;
+  line-height: 1.36 !important;
+  color: #1e1e1e !important;
+  padding: 16pt 28pt 14pt 28pt !important;
+  min-height: 297mm !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+}
+
+.resume-sheet.archetype-communication header {
+  text-align: center;
+  margin-bottom: 8pt;
+}
+
+.resume-sheet.archetype-communication header h1.name {
+  margin: 0;
+  font-size: 26pt;
+  font-weight: 700;
+  color: #000000 !important;
+}
+
+.resume-sheet.archetype-communication header .role {
+  margin: 2pt 0 4pt;
+  font-size: 12pt;
+  color: #000000 !important;
+  font-weight: 400;
+}
+
+.resume-sheet.archetype-communication header .rule {
+  width: 100%;
+  height: 1.5px;
+  background: #d7e0e7;
+  margin: 6pt 0;
+}
+
+.resume-sheet.archetype-communication header .contact {
+  font-size: 10.5pt;
+  color: #333132 !important;
+  display: block;
+}
+
+.resume-sheet.archetype-communication section {
+  padding: 4pt 0 5pt !important;
+  border-bottom: none !important;
+}
+
+.resume-sheet.archetype-communication h2 {
+  margin: 6pt 0 4pt !important;
+  padding: 4pt 12pt !important;
+  background: #d7e0e7 !important;
+  color: #000000 !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  border-bottom: none !important;
+}
+
+.resume-sheet.archetype-communication .body {
+  padding: 2pt 4pt 0;
+}
+
+.resume-sheet.archetype-communication .row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  font-weight: 700;
+  font-size: 10.5pt;
+  color: #000000 !important;
+  margin-top: 3pt;
+}
+
+.resume-sheet.archetype-communication .cols2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12pt;
+}
+
+.resume-sheet.archetype-communication .cols3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8pt;
+}
+
+.resume-sheet.archetype-communication ul {
+  margin: 2pt 0 0 !important;
+  padding-left: 18px !important;
+  list-style: disc !important;
+}
+
+.resume-sheet.archetype-communication li {
+  margin-bottom: 2pt !important;
+  line-height: 1.35 !important;
+  color: #1e1e1e !important;
+}
+
+/* Print Rules - Strict Single Page Guarantee */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    width: 210mm !important;
+    height: 297mm !important;
+  }
+  .resume-sheet {
+    width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
