@@ -50,6 +50,13 @@ function checkIfJobPage() {
 
   // 2. Specific Job Boards Verification
   if (host.includes('linkedin.com')) {
+    if (url.includes('/messaging') || url.includes('/feed') || url.includes('/mynetwork') || url.includes('/notifications')) {
+      return {
+        isJobPage: false,
+        source: url.includes('/messaging') ? 'LinkedIn Messaging' : 'LinkedIn Feed / Network',
+        reason: 'This is not a job listing. Navigate to an active job posting on LinkedIn to scan.'
+      };
+    }
     const hasJobDetails = document.querySelector('.jobs-description') ||
                           document.querySelector('#job-details') ||
                           document.querySelector('.job-details-jobs-unified-top-card__job-title') ||
@@ -64,6 +71,11 @@ function checkIfJobPage() {
         companyPreview: company || 'Company'
       };
     }
+    return {
+      isJobPage: false,
+      source: 'LinkedIn',
+      reason: 'Open a specific job posting on LinkedIn to scan.'
+    };
   }
 
   if (host.includes('indeed.com')) {

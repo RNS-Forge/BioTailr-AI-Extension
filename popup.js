@@ -109,15 +109,120 @@ function onBackgroundMessage(message) {
     return;
   }
   if (message.action === 'TAB_CHANGED' || message.action === 'TAB_UPDATED') {
-    state.currentTab = message.tab;
-    const job = getActiveJob();
-    if (job && job.status === 'unscanned') {
-      checkIfCurrentTabIsJobPage();
-    }
+    handleActiveTabSwitch(message.tab);
   }
 }
 
-// ─── 1. Tab Detection & Job Page Verification ──────────────────────────────
+// ─── 1. Tab Detection & Multi-Job Auto-Resume ───────────────────────────────
+function extractJobKey(urlString) {
+  if (!urlString) return '';
+  try {
+    const u = new URL(urlString);
+    const host = u.hostname.toLowerCase().replace(/^www\./, '');
+    const path = u.pathname.toLowerCase();
+    const search = u.search.toLowerCase();
+
+    // 1. LinkedIn: match job ID
+    if (host.includes('linkedin.com')) {
+      const viewMatch = path.match(/\/jobs\/view\/(\d+)/);
+      if (viewMatch) return `linkedin_job_${viewMatch[1]}`;
+      const searchMatch = search.match(/currentjobid=(\d+)/) || search.match(/jobid=(\d+)/);
+      if (searchMatch) return `linkedin_job_${searchMatch[1]}`;
+      return `linkedin_${path}`;
+    }
+
+    // 2. Indeed: match jk parameter
+    if (host.includes('indeed.com')) {
+      const jkMatch = search.match(/[?&]jk=([a-zA-Z0-9]+)/) || search.match(/[?&]vjk=([a-zA-Z0-9]+)/);
+      if (jkMatch) return `indeed_job_${jkMatch[1]}`;
+      return `indeed_${path}`;
+    }
+
+    // 3. Naukri: match job ID
+    if (host.includes('naukri.com')) {
+      const match = path.match(/-(\d+)\??/);
+      if (match) return `naukri_job_${match[1]}`;
+      return `naukri_${path}`;
+    }
+
+    // 4. General ATS / career portals: host + pathname
+    return `${host}${path}`;
+  } catch (e) {
+    return urlString;
+  }
+}
+
+function isSameJobUrl(url1, url2) {
+  if (!url1 || !url2) return false;
+  if (url1 === url2) return true;
+  const key1 = extractJobKey(url1);
+  const key2 = extractJobKey(url2);
+  return Boolean(key1 && key2 && key1 === key2);
+}
+
+async function handleActiveTabSwitch(tab) {
+  if (!tab || !tab.url) return;
+  // Ignore internal/browser tabs and web app processing tabs
+  if (tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.includes('extjob=')) return;
+  state.currentTab = tab;
+
+  // 1. Analyze if active tab is a job page
+  const urlAnalysis = analyzeUrlForJob(tab.url);
+  state.activeJobPageStatus = urlAnalysis;
+
+  // 2. Check if this active tab URL or tab ID matches any existing job in state.jobs
+  const matchingJob = state.jobs.find(j => {
+    if (j.tabId && j.tabId === tab.id) return true;
+    if (j.tabUrl && isSameJobUrl(j.tabUrl, tab.url)) return true;
+    return false;
+  });
+
+  if (matchingJob) {
+    // AUTOMATICALLY RESUME PREVIOUS JOB STATE
+    state.activeJobId = matchingJob.id;
+    matchingJob.tabId = tab.id;
+    matchingJob.tabUrl = tab.url;
+    renderJobTabs();
+    renderActiveJobView();
+    applyJobStatusToUI(urlAnalysis);
+    return;
+  }
+
+  // 3. Active tab is NOT an existing job in queue:
+  if (!urlAnalysis.isJobPage) {
+    // User switched to a non-job page (e.g. LinkedIn messaging, feed, Google)
+    // Do NOT create a new job!
+    const currentJob = getActiveJob();
+    if (currentJob && currentJob.status === 'unscanned') {
+      currentJob.tabUrl = tab.url;
+      currentJob.tabId = tab.id;
+      currentJob.tabHost = getHostnameFromUrl(tab.url);
+      renderActiveJobView();
+    }
+    applyJobStatusToUI(urlAnalysis);
+    return;
+  }
+
+  // 4. Active tab IS a new, recognized Job page (not yet in state.jobs):
+  const currentJob = getActiveJob();
+  if (currentJob && currentJob.status === 'unscanned') {
+    // Bind current unscanned slot to this new job tab
+    currentJob.tabUrl = tab.url;
+    currentJob.tabId = tab.id;
+    currentJob.tabHost = getHostnameFromUrl(tab.url);
+    if (urlAnalysis.titlePreview) {
+      currentJob.displayTitle = truncateTitle(urlAnalysis.titlePreview);
+      currentJob.targetRole = urlAnalysis.titlePreview;
+    }
+    renderJobTabs();
+    renderActiveJobView();
+    applyJobStatusToUI(urlAnalysis);
+  } else {
+    // Current slot is already completed ('ready'). User is viewing a new job tab.
+    applyJobStatusToUI(urlAnalysis);
+  }
+}
+
 async function detectActiveTab() {
   try {
     if (typeof chrome !== 'undefined' && chrome.tabs?.query) {
@@ -135,12 +240,7 @@ async function checkIfCurrentTabIsJobPage() {
   const currentUrl = state.currentTab?.url || '';
   const urlAnalysis = analyzeUrlForJob(currentUrl);
 
-  if (urlAnalysis.isJobPage) {
-    state.activeJobPageStatus = urlAnalysis;
-    applyJobStatusToUI(urlAnalysis);
-    return urlAnalysis;
-  }
-  if (urlAnalysis.isExplicitlyNonJob) {
+  if (urlAnalysis.isJobPage || urlAnalysis.isExplicitlyNonJob) {
     state.activeJobPageStatus = urlAnalysis;
     applyJobStatusToUI(urlAnalysis);
     return urlAnalysis;
@@ -163,7 +263,7 @@ async function checkIfCurrentTabIsJobPage() {
       }
     }
   } catch (err) {
-    // Ignore DOM inspection errors — fall through to URL analysis result
+    // Fall through to URL analysis result
   }
 
   state.activeJobPageStatus = urlAnalysis;
@@ -189,12 +289,12 @@ function sendCheckMessageToTab(tabId) {
 
 function analyzeUrlForJob(urlString) {
   if (!urlString || (!urlString.startsWith('http://') && !urlString.startsWith('https://'))) {
-    return { isJobPage: false, isExplicitlyNonJob: true, source: 'Internal Browser Tab', reason: 'Not a public webpage.' };
+    return { isJobPage: false, isExplicitlyNonJob: true, source: 'Browser Tab', reason: 'Not an active public webpage.' };
   }
 
   let parsed;
   try { parsed = new URL(urlString); } catch (e) {
-    return { isJobPage: false, isExplicitlyNonJob: true, source: 'Invalid URL', reason: 'Malformed URL' };
+    return { isJobPage: false, isExplicitlyNonJob: true, source: 'Invalid URL', reason: 'Malformed URL.' };
   }
 
   const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
@@ -213,18 +313,40 @@ function analyzeUrlForJob(urlString) {
       : '';
   };
 
+  // 1. LinkedIn (Strict Non-Job Filter: Messaging, Feed, Network, Notifications, Profile)
   if (host.includes('linkedin.com')) {
-    if (path.includes('/jobs/view/') || search.includes('currentjobid=') || search.includes('jobid='))
+    if (path.includes('/messaging')) {
+      return { isJobPage: false, isExplicitlyNonJob: true, source: 'LinkedIn Messaging', reason: 'You are on LinkedIn Messages. Open or switch to a job posting tab to scan.' };
+    }
+    if (path.includes('/feed')) {
+      return { isJobPage: false, isExplicitlyNonJob: true, source: 'LinkedIn Feed', reason: 'You are viewing your LinkedIn Feed. Open a specific job listing to scan.' };
+    }
+    if (path.includes('/mynetwork') || path.includes('/notifications')) {
+      return { isJobPage: false, isExplicitlyNonJob: true, source: 'LinkedIn Network / Notifications', reason: 'Open a job listing to scan.' };
+    }
+    if (path.includes('/in/') && !path.includes('/jobs/')) {
+      return { isJobPage: false, isExplicitlyNonJob: true, source: 'LinkedIn Profile', reason: 'You are on a profile page. Open a job listing to scan.' };
+    }
+    if (path.includes('/jobs/view/') || search.includes('currentjobid=') || search.includes('jobid=')) {
       return { isJobPage: true, source: 'LinkedIn Job Posting', titlePreview: extractSlugTitle(path) || 'LinkedIn Job', companyPreview: 'LinkedIn Employer' };
-    if (path.startsWith('/jobs/collections') || path.startsWith('/jobs/search'))
+    }
+    if (path.startsWith('/jobs/collections') || path.startsWith('/jobs/search') || path === '/jobs' || path === '/jobs/') {
       return { isJobPage: true, source: 'LinkedIn Jobs Portal', titlePreview: 'LinkedIn Search Listing', companyPreview: 'LinkedIn' };
-    return { isJobPage: false, isExplicitlyNonJob: true, source: 'LinkedIn (Feed / Profile)', reason: 'Please open a specific job listing on LinkedIn.' };
+    }
+    return { isJobPage: false, isExplicitlyNonJob: true, source: 'LinkedIn', reason: 'Please open a specific job listing on LinkedIn.' };
   }
+
+  // 2. Indeed
   if (host.includes('indeed.com')) {
-    if (path.includes('/viewjob') || search.includes('jk=') || search.includes('vjk=') || path.includes('/jobs'))
+    if (path.includes('/messages') || path.includes('/notifications')) {
+      return { isJobPage: false, isExplicitlyNonJob: true, source: 'Indeed Messages', reason: 'You are on Messages. Open a job listing to scan.' };
+    }
+    if (path.includes('/viewjob') || search.includes('jk=') || search.includes('vjk=') || path.includes('/jobs/')) {
       return { isJobPage: true, source: 'Indeed Job Listing', titlePreview: extractSlugTitle(path) || 'Indeed Job', companyPreview: 'Indeed Employer' };
-    return { isJobPage: false, isExplicitlyNonJob: true, source: 'Indeed (Home)', reason: 'Please click into a specific job listing.' };
+    }
+    return { isJobPage: false, isExplicitlyNonJob: true, source: 'Indeed', reason: 'Please click into a specific job listing.' };
   }
+
   if (host.includes('greenhouse.io')) {
     const company = host.split('.')[0] === 'boards' ? path.split('/')[1] : host.split('.')[0];
     return { isJobPage: true, source: 'Greenhouse Career Board', titlePreview: extractSlugTitle(path) || 'Greenhouse Opportunity', companyPreview: company ? company.charAt(0).toUpperCase() + company.slice(1) : 'Company' };
@@ -287,12 +409,16 @@ function applyJobStatusToUI(status) {
     if (noticeBox) noticeBox.style.display = 'none';
   } else {
     cardEl.className = 'page-detection-card unverified';
-    if (labelEl) labelEl.textContent = 'No Job Detected On Active Tab';
-    if (urlTextEl) urlTextEl.textContent = getHostnameFromUrl(state.currentTab?.url || '') + ' (Not a job listing)';
+    if (labelEl) labelEl.textContent = status?.source ? `No Job Detected — ${status.source}` : 'No Job Detected On Active Tab';
+    if (urlTextEl) urlTextEl.textContent = status?.reason || (getHostnameFromUrl(state.currentTab?.url || '') + ' (Not a job listing)');
     scanBtn.disabled = true;
-    if (scanTitle) scanTitle.textContent = 'JOB PAGE REQUIRED';
-    if (scanSub) scanSub.textContent = 'Navigate to any job listing on LinkedIn, Indeed, etc.';
-    if (noticeBox) noticeBox.style.display = 'flex';
+    if (scanTitle) scanTitle.textContent = 'SCAN DISABLED';
+    if (scanSub) scanSub.textContent = status?.reason || 'Navigate to any job listing on LinkedIn, Indeed, etc. to scan.';
+    if (noticeBox) {
+      noticeBox.style.display = 'flex';
+      const noticeText = noticeBox.querySelector('.notice-text');
+      if (noticeText) noticeText.textContent = status?.reason || 'This page does not appear to be a job posting. Scan is disabled until you open a job listing.';
+    }
   }
 }
 
@@ -313,9 +439,12 @@ function createNewJobObject(titleLabel = 'New Job') {
     company: '',
     location: '',
     tabUrl: url,
+    tabId: state.currentTab?.id || null,
     tabHost: getHostnameFromUrl(url),
     scannedJobData: null,
     compiledHtml: '',
+    fullDocumentHtml: '',
+    filename: '',
     archetypeId: 'developer',
     atsScore: 100,
     status: 'unscanned',  // 'unscanned' | 'scanning' | 'processing' | 'ready' | 'error'

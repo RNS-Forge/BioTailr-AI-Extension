@@ -69,15 +69,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
-    // Do not relay messages from the BioTailr processing tab
-    if (tab.url && tab.url.includes('rns-forge.github.io/BioTailr-AI')) return;
+    if (!tab || !tab.url) return;
+    // Do not relay internal processing tabs
+    if (tab.url.includes('extjob=')) return;
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) return;
+
+    if (sidePanelPort) {
+      try { sidePanelPort.postMessage({ action: 'TAB_CHANGED', tab }); } catch (e) { sidePanelPort = null; }
+    }
     chrome.runtime.sendMessage({ action: 'TAB_CHANGED', tab }).catch(() => {});
   } catch (e) {}
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete') {
-    if (tab.url && tab.url.includes('rns-forge.github.io/BioTailr-AI')) return;
+  if (changeInfo.status === 'complete' && tab && tab.url) {
+    if (tab.url.includes('extjob=')) return;
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) return;
+
+    if (sidePanelPort) {
+      try { sidePanelPort.postMessage({ action: 'TAB_UPDATED', tab }); } catch (e) { sidePanelPort = null; }
+    }
     chrome.runtime.sendMessage({ action: 'TAB_UPDATED', tab }).catch(() => {});
   }
 });
