@@ -789,8 +789,16 @@ async function handleScanAndTailorJob(isDemo = false) {
     if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
       const webAppTab = await chrome.tabs.create({ url: webAppUrl, active: false });
       job.processingTabId = webAppTab?.id;
+      if (state.currentTab && state.currentTab.id) {
+        try { await chrome.tabs.update(state.currentTab.id, { active: true }); } catch(err) {}
+      }
     } else {
-      window.open(webAppUrl, '_blank');
+      // Completely silent iframe processing — zero visible tabs or navigation
+      const iframe = document.createElement('iframe');
+      iframe.src = webAppUrl;
+      iframe.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;border:none;visibility:hidden;';
+      document.body.appendChild(iframe);
+      job.processingIframe = iframe;
     }
 
     updateProcStep(procCardId, 2, 'Sent to Web App', true);
@@ -855,6 +863,16 @@ function handleResumeReady(message) {
   const { job, procCardId, timeoutId, onResult } = pendingEntry;
   clearTimeout(timeoutId);
   delete state.pendingJobMap[jobId];
+
+  // Immediately dismiss background processing tab or iframe
+  if (job.processingTabId && typeof chrome !== 'undefined' && chrome.tabs?.remove) {
+    chrome.tabs.remove(job.processingTabId).catch(() => {});
+    job.processingTabId = null;
+  }
+  if (job.processingIframe) {
+    job.processingIframe.remove();
+    job.processingIframe = null;
+  }
 
   // Revision result (no processing card, has onResult callback)
   if (onResult) {
@@ -956,8 +974,19 @@ async function handleUserSendRevision() {
   try {
     await chrome.storage.local.set({ [storageKey]: jobPayload });
     const webAppUrl = await resolveWebAppUrl(jobId, authKey);
-    const webAppTab = await chrome.tabs.create({ url: webAppUrl, active: false });
-    job.processingTabId = webAppTab.id;
+    if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+      const webAppTab = await chrome.tabs.create({ url: webAppUrl, active: false });
+      job.processingTabId = webAppTab?.id;
+      if (state.currentTab && state.currentTab.id) {
+        try { await chrome.tabs.update(state.currentTab.id, { active: true }); } catch(err) {}
+      }
+    } else {
+      const iframe = document.createElement('iframe');
+      iframe.src = webAppUrl;
+      iframe.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;border:none;visibility:hidden;';
+      document.body.appendChild(iframe);
+      job.processingIframe = iframe;
+    }
 
     state.pendingJobMap = state.pendingJobMap || {};
     state.pendingJobMap[jobId] = { job, procCardId: null, authKey, isRevision: true, revisionNote: userText };

@@ -119,14 +119,30 @@ body {
 }
 
 .brand-title {
+  display: inline-flex;
+  align-items: flex-start;
   font-family: var(--font-brand);
   font-weight: 800;
-  font-size: 1.02rem;
   letter-spacing: -0.4px;
 }
 
-.brand-title .navy { color: var(--navy); }
-.brand-title .teal { color: var(--teal); }
+.brand-title .navy {
+  color: var(--navy);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.brand-title .teal {
+  color: var(--teal);
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: super;
+  margin-left: 2px;
+  position: relative;
+  top: -2px;
+}
 
 .brand-tag {
   font-size: 0.62rem;
