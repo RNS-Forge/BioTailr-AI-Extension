@@ -81,6 +81,11 @@ async function initExtension() {
   if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
     chrome.runtime.onMessage.addListener(onBackgroundMessage);
   }
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.action) onBackgroundMessage(e.data);
+  });
+  if (false) {
+  }
 }
 
 // ─── 0. Background Port (for push messages from background.js) ─────────────
@@ -391,6 +396,8 @@ function applyJobStatusToUI(status) {
   const cardEl = document.getElementById('page-detection-card');
   const dotEl = document.getElementById('detection-status-dot');
   const labelEl = document.getElementById('detection-status-label');
+  const roleDisplayEl = document.getElementById('detection-role-display');
+  const sourceBadgeEl = document.getElementById('detection-source-badge');
   const urlTextEl = document.getElementById('tab-url-text');
   const scanBtn = document.getElementById('btn-center-scan');
   const scanTitle = document.getElementById('scan-btn-title');
@@ -401,23 +408,49 @@ function applyJobStatusToUI(status) {
 
   if (status && status.isJobPage) {
     cardEl.className = 'page-detection-card verified';
-    if (labelEl) labelEl.textContent = status.source || 'Verified Job Posting';
-    if (urlTextEl) urlTextEl.textContent = `${status.titlePreview || 'Target Role'}${status.companyPreview ? ' @ ' + status.companyPreview : ''}`;
+    if (labelEl) labelEl.textContent = 'Active Job Detected';
+
+    const src = (status.source || '').toLowerCase();
+    let badgeText = 'Job Board';
+    if (src.includes('linkedin')) badgeText = 'LinkedIn';
+    else if (src.includes('indeed')) badgeText = 'Indeed';
+    else if (src.includes('greenhouse')) badgeText = 'Greenhouse';
+    else if (src.includes('lever')) badgeText = 'Lever';
+    else if (src.includes('workday')) badgeText = 'Workday';
+    else if (src.includes('naukri')) badgeText = 'Naukri';
+    else if (src.includes('schema')) badgeText = 'Career Page';
+    if (sourceBadgeEl) sourceBadgeEl.textContent = badgeText;
+
+    let rawRole = (status.titlePreview || '').trim();
+    if (!rawRole || rawRole.toLowerCase().includes('search') || rawRole.toLowerCase().includes('listing')) {
+      rawRole = 'Software Development Engineer';
+    }
+    if (roleDisplayEl) roleDisplayEl.textContent = rawRole;
+
+    const company = (status.companyPreview || '').trim();
+    if (urlTextEl) {
+      urlTextEl.textContent = (company && !company.toLowerCase().includes('employer'))
+        ? company + ' • Ready to Tailor'
+        : 'Verified Job Posting • Ready to Tailor';
+    }
+
     scanBtn.disabled = false;
     if (scanTitle) scanTitle.textContent = 'SCAN & TAILOR RESUME';
-    if (scanSub) scanSub.textContent = `Synthesize 100% ATS Resume via BioTailr AI for ${truncateTitle(status.titlePreview || 'this role', 30)}`;
+    if (scanSub) scanSub.textContent = 'Generate 100% ATS Resume via BioTailr Web';
     if (noticeBox) noticeBox.style.display = 'none';
   } else {
     cardEl.className = 'page-detection-card unverified';
-    if (labelEl) labelEl.textContent = status?.source ? `No Job Detected — ${status.source}` : 'No Job Detected On Active Tab';
-    if (urlTextEl) urlTextEl.textContent = status?.reason || (getHostnameFromUrl(state.currentTab?.url || '') + ' (Not a job listing)');
+    if (labelEl) labelEl.textContent = 'Job Page Required';
+    if (sourceBadgeEl) sourceBadgeEl.textContent = 'Inactive';
+    if (roleDisplayEl) roleDisplayEl.textContent = 'No Active Job Listing';
+    if (urlTextEl) urlTextEl.textContent = status ? (status.reason || 'Navigate to any job listing on LinkedIn, Indeed, etc.') : 'Navigate to a job page';
     scanBtn.disabled = true;
     if (scanTitle) scanTitle.textContent = 'SCAN DISABLED';
-    if (scanSub) scanSub.textContent = status?.reason || 'Navigate to any job listing on LinkedIn, Indeed, etc. to scan.';
+    if (scanSub) scanSub.textContent = 'Open any job posting to enable tailoring';
     if (noticeBox) {
       noticeBox.style.display = 'flex';
       const noticeText = noticeBox.querySelector('.notice-text');
-      if (noticeText) noticeText.textContent = status?.reason || 'This page does not appear to be a job posting. Scan is disabled until you open a job listing.';
+      if (noticeText) noticeText.textContent = status ? (status.reason || 'The scan feature activates when viewing an active job listing or career page.') : 'The scan feature activates when viewing an active job listing or career page.';
     }
   }
 }
@@ -701,12 +734,19 @@ async function handleScanAndTailorJob(isDemo = false) {
       detectedSource: scannedData.detectedSource || 'Job Board'
     };
 
-    await chrome.storage.local.set({ [storageKey]: jobPayload });
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      await chrome.storage.local.set({ [storageKey]: jobPayload });
+    } else {
+      localStorage.setItem(storageKey, JSON.stringify(jobPayload));
+    }
 
-    // Open BioTailr web app with ?extjob=<jobId>&authKey=<authKey> in a background tab
     const webAppUrl = await resolveWebAppUrl(jobId, authKey);
-    const webAppTab = await chrome.tabs.create({ url: webAppUrl, active: false });
-    job.processingTabId = webAppTab.id;
+    if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+      const webAppTab = await chrome.tabs.create({ url: webAppUrl, active: false });
+      job.processingTabId = webAppTab?.id;
+    } else {
+      window.open(webAppUrl, '_blank');
+    }
 
     updateProcStep(procCardId, 2, 'Sent to Web App', true);
     await delay(200);
@@ -949,58 +989,49 @@ function getMockJobData() {
 
 // ─── 11. Resume Result Card ────────────────────────────────────────────────
 function renderTailoredResumeCard(job, revisionNote = '') {
-  const cardId = `resume_card_${job.id}_${job.revisionsCount}`;
-  const trackName = ARCHETYPE_NAMES[job.archetypeId] || 'Software Engineering';
+  const cardId = 'resume_card_' + job.id + '_' + job.revisionsCount;
+  const trackName = ARCHETYPE_NAMES[job.archetypeId] || 'Software Development Engineer';
 
-  const cardHtml = `
-    <div class="tailored-result-card" id="${cardId}">
-      <div class="result-card-header">
-        <div class="result-title-group">
-          <h4>${escapeHtml(job.targetRole)}</h4>
-          <div class="result-meta-track">${escapeHtml(job.company)} &bull; ${escapeHtml(trackName)}</div>
-        </div>
-        <div class="ats-score-tag">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span>100% ATS SCORE</span>
-        </div>
-      </div>
+  const revBlock = revisionNote
+    ? '<div style="background: var(--teal-light); border: 1px solid var(--teal-border); border-radius: 6px; font-size: 0.72rem; color: var(--teal-dark); padding: 6px 10px; font-weight: 500;"><strong>Revision #' + job.revisionsCount + ':</strong> ' + escapeHtml(revisionNote) + '</div>'
+    : '';
 
-      ${revisionNote ? `
-        <div class="bubble bot-bubble" style="background: var(--teal-light); border-color: var(--teal-border); font-size: 0.76rem; color: var(--teal-dark); padding: 6px 10px;">
-          <strong>Revision #${job.revisionsCount} Applied:</strong> ${escapeHtml(revisionNote)}
-        </div>
-      ` : ''}
-
-      <div class="result-chips-row">
-        ${job.location ? `<span class="res-chip">${escapeHtml(job.location)}</span>` : ''}
-        <span class="res-chip">Single-Column ATS Format</span>
-        <span class="res-chip">Pure Black Ink (#000000)</span>
-      </div>
-
-      <!-- One-Step Direct Download -->
-      <div class="download-action-row">
-        <button class="btn-download-step pdf" data-download-pdf="${job.id}" title="Download Single-Page PDF">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>Download PDF</span>
-        </button>
-        <button class="btn-download-step html" data-download-html="${job.id}" title="Download ATS HTML">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          <span>Download HTML</span>
-        </button>
-      </div>
-
-      <a href="${BIOTAILR_WEB_APP}?role=${encodeURIComponent(job.targetRole)}#studio" target="_blank" class="btn-card-link-app" title="Open & Edit in BioTailr Web Studio">
-        <span>Open in BioTailr Studio</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      </a>
-    </div>
-  `;
+  const cardHtml = '<div class="resume-ready-card" id="' + cardId + '">' +
+    '<div class="card-top-row">' +
+      '<div class="ats-score-badge">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+        '<span>100% ATS SCORE</span>' +
+      '</div>' +
+      '<span class="calibrated-tag">Sanjay N Calibration</span>' +
+    '</div>' +
+    revBlock +
+    '<div class="resume-meta-box">' +
+      '<div class="candidate-name">Sanjay N</div>' +
+      '<div class="target-role-badge">' + escapeHtml(job.targetRole) + '</div>' +
+      '<div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">' + escapeHtml(trackName) + ' &bull; Exactly 1-Page A4</div>' +
+    '</div>' +
+    '<div class="resume-download-actions">' +
+      '<button class="btn-download-pdf" data-download-pdf="' + job.id + '" title="Download 1-Page Vector PDF">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+        '<span>Download 1-Page PDF</span>' +
+      '</button>' +
+      '<div class="secondary-download-row">' +
+        '<button class="btn-download-html" data-download-html="' + job.id + '" title="Download Pure ATS HTML">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>' +
+          '<span>HTML Resume</span>' +
+        '</button>' +
+        '<a href="' + BIOTAILR_WEB_APP + '?role=' + encodeURIComponent(job.targetRole) + '#studio" target="_blank" class="btn-open-webapp" title="Open in Web Studio">' +
+          '<span>Open in Studio</span>' +
+          '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+        '</a>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
 
   addCustomHtmlMessage(job, cardHtml);
   setTimeout(() => bindCardDownloadButtons(), 100);
 }
 
-// ─── 12. Download Handlers ─────────────────────────────────────────────────
 function bindCardDownloadButtons() {
   document.querySelectorAll('[data-download-pdf]').forEach(btn => {
     if (btn.dataset.bound) return;
@@ -1021,24 +1052,38 @@ function bindCardDownloadButtons() {
 }
 
 function executeDirectPdfDownload(job) {
-  const filename = `${job.filename || `Sanjay_N_${(job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`}.pdf`;
+  const filename = (job.filename || ('Sanjay_N_' + (job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_') + '_Resume')) + '.pdf';
   const sandbox = document.getElementById('hidden-resume-sandbox');
   if (!sandbox) return;
 
-  sandbox.innerHTML = job.fullDocumentHtml || job.compiledHtml;
-  const targetElement = sandbox.querySelector('.resume-sheet') || sandbox.querySelector('#resume-document') || sandbox;
+  const parser = new DOMParser();
+  const sourceHtml = job.fullDocumentHtml || job.compiledHtml;
+  const doc = parser.parseFromString(sourceHtml, 'text/html');
+  const styleEl = doc.querySelector('style');
+  const sheetEl = doc.querySelector('.resume-sheet') || doc.querySelector('#resume-document') || doc.body.firstElementChild;
 
-  if (typeof window.html2pdf !== 'undefined') {
-    const opt = {
-      margin: 0,
-      filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    window.html2pdf().set(opt).from(targetElement).toPdf().get('pdf').then((pdf) => {
-      while (pdf.internal.getNumberOfPages() > 1) pdf.deletePage(pdf.internal.getNumberOfPages());
-    }).save();
+  sandbox.innerHTML = '';
+  if (sheetEl) {
+    const clone = sheetEl.cloneNode(true);
+    if (styleEl) {
+      clone.insertBefore(styleEl.cloneNode(true), clone.firstChild);
+    }
+    sandbox.appendChild(clone);
+
+    if (typeof window.html2pdf !== 'undefined') {
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      window.html2pdf().set(opt).from(clone).toPdf().get('pdf').then((pdf) => {
+        while (pdf.internal.getNumberOfPages() > 1) pdf.deletePage(pdf.internal.getNumberOfPages());
+      }).save();
+    } else {
+      executeDirectHtmlDownload(job);
+    }
   } else {
     executeDirectHtmlDownload(job);
   }
