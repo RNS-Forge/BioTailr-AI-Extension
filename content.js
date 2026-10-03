@@ -62,12 +62,38 @@ function checkIfJobPage() {
                           document.querySelector('.job-details-jobs-unified-top-card__job-title') ||
                           document.querySelector('.top-card-layout__title');
     if (url.includes('/jobs/') || hasJobDetails) {
-      const title = getFirstText(['.job-details-jobs-unified-top-card__job-title', '.top-card-layout__title', 'h1']);
-      const company = getFirstText(['.job-details-jobs-unified-top-card__company-name', '.topcard__flavor--black-link']);
+      let title = getFirstText([
+        '.job-details-jobs-unified-top-card__job-title',
+        '.jobs-unified-top-card__job-title',
+        '.jobs-search__job-details--container h1',
+        'h1.job-details-jobs-unified-top-card__job-title',
+        '.top-card-layout__title',
+        'h1.t-24',
+        'h1[class*="job-title"]',
+        '.jobs-details__main-content h1',
+        'h1'
+      ]);
+      if (!title || title.toLowerCase() === 'linkedin' || title.toLowerCase().includes('search') || title.toLowerCase().includes('job')) {
+        const cleanDocTitle = (document.title || '').split('|')[0].split(' hiring ')[0].split(' - ')[0].trim();
+        if (cleanDocTitle && !cleanDocTitle.toLowerCase().includes('feed') && !cleanDocTitle.toLowerCase().includes('message')) {
+          title = cleanDocTitle;
+        }
+      }
+      let company = getFirstText([
+        '.job-details-jobs-unified-top-card__company-name a',
+        '.job-details-jobs-unified-top-card__company-name',
+        '.jobs-unified-top-card__company-name a',
+        '.jobs-unified-top-card__company-name',
+        '.topcard__flavor--black-link',
+        'a[class*="company-name"]'
+      ]);
+      if (!company && (document.title || '').includes(' at ')) {
+        company = document.title.split(' at ')[1].split('|')[0].trim();
+      }
       return {
         isJobPage: true,
         source: 'LinkedIn Job Posting',
-        titlePreview: title || 'LinkedIn Job',
+        titlePreview: title || 'LinkedIn Job Posting',
         companyPreview: company || 'Company'
       };
     }
@@ -182,7 +208,8 @@ function checkIfJobPage() {
   // Not a verified job page
   return {
     isJobPage: false,
-    source: 'Non-Job Webpage',
+    source: host || 'Webpage',
+    pageTitle: document.title || '',
     reason: 'Active tab is not a recognized job listing or career page.'
   };
 }

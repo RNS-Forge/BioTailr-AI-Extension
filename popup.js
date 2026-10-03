@@ -81,6 +81,26 @@ async function initExtension() {
   if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
     chrome.runtime.onMessage.addListener(onBackgroundMessage);
   }
+
+  // Active tab change & URL update listeners for real-time dynamic detection
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    if (chrome.tabs.onActivated) {
+      chrome.tabs.onActivated.addListener(async () => {
+        await detectActiveTab();
+        await checkIfCurrentTabIsJobPage();
+      });
+    }
+    if (chrome.tabs.onUpdated) {
+      chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+        if (state.currentTab && state.currentTab.id === tabId) {
+          if (changeInfo.status === 'complete' || changeInfo.url) {
+            await detectActiveTab();
+            await checkIfCurrentTabIsJobPage();
+          }
+        }
+      });
+    }
+  }
   window.addEventListener('message', (e) => {
     if (e.data && e.data.action) onBackgroundMessage(e.data);
   });
@@ -243,32 +263,60 @@ async function detectActiveTab() {
 
 async function checkIfCurrentTabIsJobPage() {
   const currentUrl = state.currentTab?.url || '';
-  const urlAnalysis = analyzeUrlForJob(currentUrl);
+  const tabId = state.currentTab?.id;
 
-  if (urlAnalysis.isJobPage || urlAnalysis.isExplicitlyNonJob) {
-    state.activeJobPageStatus = urlAnalysis;
-    applyJobStatusToUI(urlAnalysis);
-    return urlAnalysis;
+  // Browser internal or settings tabs
+  if (!currentUrl || currentUrl.startsWith('chrome:') || currentUrl.startsWith('edge:') || currentUrl.startsWith('about:')) {
+    const res = { isJobPage: false, isExplicitlyNonJob: true, source: 'Browser Settings', pageTitle: state.currentTab?.title || 'Browser Tab', reason: 'Open any job posting on LinkedIn, Indeed, etc.' };
+    state.activeJobPageStatus = res;
+    applyJobStatusToUI(res);
+    return res;
   }
 
-  // DOM fallback via content script
-  try {
-    const tabId = state.currentTab?.id;
-    if (tabId) {
-      let response = await sendCheckMessageToTab(tabId);
-      if (!response || response.isJobPage === undefined) {
-        await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
-        await delay(120);
-        response = await sendCheckMessageToTab(tabId);
+  // Real DOM verification via content script
+  let domResponse = null;
+  if (tabId) {
+    try {
+      domResponse = await sendCheckMessageToTab(tabId);
+      if (!domResponse || domResponse.isJobPage === undefined) {
+        try {
+          await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
+          await delay(100);
+          domResponse = await sendCheckMessageToTab(tabId);
+        } catch (injErr) {
+          // Restricted tabs
+        }
       }
-      if (response && response.isJobPage) {
-        state.activeJobPageStatus = response;
-        applyJobStatusToUI(response);
-        return response;
+    } catch (e) {
+      console.warn('DOM verification query:', e);
+    }
+  }
+
+  if (domResponse && domResponse.isJobPage) {
+    state.activeJobPageStatus = domResponse;
+    applyJobStatusToUI(domResponse);
+    return domResponse;
+  }
+
+  if (domResponse && domResponse.isExplicitlyNonJob) {
+    state.activeJobPageStatus = domResponse;
+    applyJobStatusToUI(domResponse);
+    return domResponse;
+  }
+
+  // URL fallback analysis
+  const urlAnalysis = analyzeUrlForJob(currentUrl);
+  if (urlAnalysis.isJobPage && (!urlAnalysis.titlePreview || urlAnalysis.titlePreview === 'LinkedIn Job' || urlAnalysis.titlePreview.includes('search'))) {
+    if (state.currentTab?.title) {
+      const cleanDocTitle = state.currentTab.title.split('|')[0].split(' hiring ')[0].split(' - ')[0].trim();
+      if (cleanDocTitle && !cleanDocTitle.toLowerCase().includes('feed') && !cleanDocTitle.toLowerCase().includes('message')) {
+        urlAnalysis.titlePreview = cleanDocTitle;
       }
     }
-  } catch (err) {
-    // Fall through to URL analysis result
+  }
+
+  if (!urlAnalysis.isJobPage && state.currentTab?.title) {
+    urlAnalysis.pageTitle = state.currentTab.title;
   }
 
   state.activeJobPageStatus = urlAnalysis;
@@ -399,12 +447,13 @@ function applyJobStatusToUI(status) {
   const roleDisplayEl = document.getElementById('detection-role-display');
   const sourceBadgeEl = document.getElementById('detection-source-badge');
   const urlTextEl = document.getElementById('tab-url-text');
-  const scanBtn = document.getElementById('btn-center-scan');
-  const scanTitle = document.getElementById('scan-btn-title');
-  const scanSub = document.getElementById('scan-btn-sub');
   const noticeBox = document.getElementById('non-job-notice-box');
 
-  if (!cardEl || !scanBtn) return;
+  const swipeTrack = document.getElementById('swipe-track');
+  const swipePrimary = document.getElementById('swipe-primary-text');
+  const swipeSub = document.getElementById('swipe-sub-text');
+
+  if (!cardEl) return;
 
   if (status && status.isJobPage) {
     cardEl.className = 'page-detection-card verified';
@@ -419,11 +468,12 @@ function applyJobStatusToUI(status) {
     else if (src.includes('workday')) badgeText = 'Workday';
     else if (src.includes('naukri')) badgeText = 'Naukri';
     else if (src.includes('schema')) badgeText = 'Career Page';
+    else if (src.includes('demo')) badgeText = 'Demo Role';
     if (sourceBadgeEl) sourceBadgeEl.textContent = badgeText;
 
     let rawRole = (status.titlePreview || '').trim();
-    if (!rawRole || rawRole.toLowerCase().includes('search') || rawRole.toLowerCase().includes('listing')) {
-      rawRole = 'Software Development Engineer';
+    if (!rawRole) {
+      rawRole = 'Active Job Opportunity';
     }
     if (roleDisplayEl) roleDisplayEl.textContent = rawRole;
 
@@ -434,19 +484,23 @@ function applyJobStatusToUI(status) {
         : 'Verified Job Posting • Ready to Tailor';
     }
 
-    scanBtn.disabled = false;
-    if (scanTitle) scanTitle.textContent = 'SCAN & TAILOR RESUME';
-    if (scanSub) scanSub.textContent = 'Generate 100% ATS Resume via BioTailr Web';
+    if (swipeTrack) swipeTrack.classList.remove('disabled');
+    if (swipePrimary) swipePrimary.textContent = 'SWIPE TO TAILOR RESUME';
+    if (swipeSub) swipeSub.textContent = '1-Click 100% ATS Match • Direct PDF';
     if (noticeBox) noticeBox.style.display = 'none';
   } else {
     cardEl.className = 'page-detection-card unverified';
     if (labelEl) labelEl.textContent = 'Job Page Required';
     if (sourceBadgeEl) sourceBadgeEl.textContent = 'Inactive';
-    if (roleDisplayEl) roleDisplayEl.textContent = 'No Active Job Listing';
+    if (roleDisplayEl) {
+      const pTitle = status ? (status.pageTitle || status.source || '') : '';
+      roleDisplayEl.textContent = pTitle ? (pTitle.length > 40 ? pTitle.slice(0, 40) + '...' : pTitle) : 'No Active Job Listing';
+    }
     if (urlTextEl) urlTextEl.textContent = status ? (status.reason || 'Navigate to any job listing on LinkedIn, Indeed, etc.') : 'Navigate to a job page';
-    scanBtn.disabled = true;
-    if (scanTitle) scanTitle.textContent = 'SCAN DISABLED';
-    if (scanSub) scanSub.textContent = 'Open any job posting to enable tailoring';
+    
+    if (swipeTrack) swipeTrack.classList.add('disabled');
+    if (swipePrimary) swipePrimary.textContent = 'JOB PAGE REQUIRED TO SLIDE';
+    if (swipeSub) swipeSub.textContent = 'Open any job posting on LinkedIn, Indeed, etc.';
     if (noticeBox) {
       noticeBox.style.display = 'flex';
       const noticeText = noticeBox.querySelector('.notice-text');
@@ -598,17 +652,8 @@ function bindUIEvents() {
   const btnNewJob = document.getElementById('btn-add-new-job');
   if (btnNewJob) btnNewJob.addEventListener('click', addNewJobTab);
 
-  // Center Scan Button
-  const btnScan = document.getElementById('btn-center-scan');
-  if (btnScan) {
-    btnScan.addEventListener('click', () => {
-      if (state.activeJobPageStatus && !state.activeJobPageStatus.isJobPage) {
-        alert('Please open an active job listing (LinkedIn, Indeed, etc.) to scan.');
-        return;
-      }
-      handleScanAndTailorJob();
-    });
-  }
+  // Executive Swipe-To-Tailor Console Controller
+  initSwipeToTailorButton();
 
   // Demo Test Button
   const btnDemo = document.getElementById('btn-demo-test');
@@ -1051,6 +1096,87 @@ function bindCardDownloadButtons() {
   });
 }
 
+/**
+ * Auto-balances resume to strictly fit 1 A4 page without clipping.
+ * Dynamically scales down font sizes, line height, and section padding if content is long.
+ */
+function fitResumeToOnePage(element) {
+  if (!element) return;
+  const MAX_HEIGHT_PX = 1090; // Strictly safe 1-page A4 height at 96 DPI with buffer
+
+  element.style.width = '210mm';
+  element.style.boxSizing = 'border-box';
+  element.style.maxHeight = 'none';
+  element.style.height = 'auto';
+  element.style.display = 'flex';
+  element.style.flexDirection = 'column';
+  element.style.justifyContent = 'flex-start';
+  element.style.padding = '12pt 30pt 8pt 30pt';
+
+  let currentH = element.scrollHeight;
+  if (currentH > MAX_HEIGHT_PX) {
+    let baseFont = 9.4;
+    let baseLine = 1.30;
+    let secPaddingTop = 2.5;
+    let secPaddingBottom = 3;
+    let h2Margin = 1.5;
+
+    let passes = 0;
+    while (element.scrollHeight > MAX_HEIGHT_PX && passes < 6) {
+      passes++;
+      baseFont = Math.max(7.2, baseFont * 0.95);
+      baseLine = Math.max(1.14, baseLine * 0.96);
+      secPaddingTop = Math.max(1.0, secPaddingTop * 0.85);
+      secPaddingBottom = Math.max(1.2, secPaddingBottom * 0.85);
+      h2Margin = Math.max(0.8, h2Margin * 0.85);
+
+      element.style.fontSize = `${baseFont.toFixed(2)}pt`;
+      element.style.lineHeight = `${baseLine.toFixed(2)}`;
+
+      element.querySelectorAll('section').forEach(s => {
+        s.style.paddingTop = `${secPaddingTop.toFixed(1)}pt`;
+        s.style.paddingBottom = `${secPaddingBottom.toFixed(1)}pt`;
+      });
+      element.querySelectorAll('h2').forEach(h => {
+        h.style.marginBottom = `${h2Margin.toFixed(1)}pt`;
+        h.style.fontSize = `${Math.max(9.5, 11 * (baseFont / 9.4)).toFixed(1)}pt`;
+        h.style.lineHeight = '1.18';
+      });
+      element.querySelectorAll('ul').forEach(u => {
+        u.style.paddingLeft = '18pt';
+        u.style.margin = '0';
+      });
+      element.querySelectorAll('li').forEach(li => {
+        li.style.fontSize = `${baseFont.toFixed(2)}pt`;
+        li.style.lineHeight = `${baseLine.toFixed(2)}`;
+        li.style.marginBottom = '1pt';
+      });
+      element.querySelectorAll('p.summary').forEach(p => {
+        p.style.fontSize = `${baseFont.toFixed(2)}pt`;
+        p.style.lineHeight = `${baseLine.toFixed(2)}`;
+      });
+      element.querySelectorAll('.exp-entry').forEach(e => {
+        e.style.marginTop = '2.5pt';
+      });
+      element.querySelectorAll('.skills-cat-list li').forEach(li => {
+        li.style.marginBottom = '1pt';
+        li.style.fontSize = `${baseFont.toFixed(2)}pt`;
+        li.style.lineHeight = `${baseLine.toFixed(2)}`;
+      });
+    }
+
+    if (element.scrollHeight > MAX_HEIGHT_PX) {
+      const finalFactor = (MAX_HEIGHT_PX - 4) / element.scrollHeight;
+      element.style.transform = `scale(${finalFactor.toFixed(4)})`;
+      element.style.transformOrigin = 'top center';
+    }
+  }
+
+  element.style.minHeight = '297mm';
+  element.style.maxHeight = '297mm';
+  element.style.overflow = 'hidden';
+}
+
 function executeDirectPdfDownload(job) {
   const filename = (job.filename || ('Sanjay_N_' + (job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_') + '_Resume')) + '.pdf';
   const sandbox = document.getElementById('hidden-resume-sandbox');
@@ -1069,6 +1195,13 @@ function executeDirectPdfDownload(job) {
       clone.insertBefore(styleEl.cloneNode(true), clone.firstChild);
     }
     sandbox.appendChild(clone);
+
+    // Apply auto-fit 1-page scaling
+    try {
+      fitResumeToOnePage(clone);
+    } catch (fitErr) {
+      console.warn('PDF fit scaling warning:', fitErr);
+    }
 
     if (typeof window.html2pdf !== 'undefined') {
       const opt = {
@@ -1184,4 +1317,120 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * Executive Swipe-To-Tailor Button Controller
+ * Smooth tactile left-to-right swipe mechanism with click fallback and zero rotation animations.
+ */
+function initSwipeToTailorButton() {
+  const track = document.getElementById('swipe-track');
+  const handle = document.getElementById('swipe-handle');
+  const fill = document.getElementById('swipe-track-fill');
+  const primaryText = document.getElementById('swipe-primary-text');
+  const subText = document.getElementById('swipe-sub-text');
+
+  if (!track || !handle) return;
+
+  let isDragging = false;
+  let startX = 0;
+  let currentLeft = 4;
+  let maxRight = 0;
+
+  function updateMaxRight() {
+    const trackWidth = track.clientWidth || 320;
+    const handleWidth = handle.clientWidth || 46;
+    maxRight = Math.max(0, trackWidth - handleWidth - 4);
+  }
+
+  function setHandlePos(pos, animate = false) {
+    if (animate) {
+      handle.style.transition = 'left 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (fill) fill.style.transition = 'width 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+    } else {
+      handle.style.transition = 'none';
+      if (fill) fill.style.transition = 'none';
+    }
+    const clamped = Math.max(4, Math.min(pos, maxRight));
+    handle.style.left = clamped + 'px';
+    if (fill) {
+      const fillW = clamped + (handle.clientWidth || 46) / 2;
+      fill.style.width = fillW + 'px';
+    }
+  }
+
+  function resetHandle() {
+    setHandlePos(4, true);
+    track.classList.remove('swiping-active');
+  }
+
+  function triggerTailorAction() {
+    if (track.classList.contains('disabled')) return;
+    updateMaxRight();
+    setHandlePos(maxRight, true);
+    track.classList.add('tailoring-triggered');
+    if (primaryText) primaryText.textContent = 'TAILORING RESUME...';
+    if (subText) subText.textContent = 'Connecting with BioTailr AI Engine';
+
+    setTimeout(() => {
+      handleScanAndTailorJob();
+      setTimeout(resetHandle, 1200);
+    }, 240);
+  }
+
+  function onPointerDown(e) {
+    if (track.classList.contains('disabled')) return;
+    isDragging = true;
+    startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    updateMaxRight();
+    track.classList.add('swiping-active');
+    try { handle.setPointerCapture(e.pointerId); } catch(err) {}
+    e.preventDefault();
+  }
+
+  function onPointerMove(e) {
+    if (!isDragging) return;
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    const deltaX = clientX - startX;
+    currentLeft = Math.max(4, Math.min(4 + deltaX, maxRight));
+    setHandlePos(currentLeft, false);
+
+    const progress = (currentLeft - 4) / (maxRight || 1);
+    if (progress > 0.55) {
+      track.classList.add('ready-to-snap');
+    } else {
+      track.classList.remove('ready-to-snap');
+    }
+  }
+
+  function onPointerUp(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    track.classList.remove('ready-to-snap');
+    const progress = (currentLeft - 4) / (maxRight || 1);
+    if (progress >= 0.5) {
+      triggerTailorAction();
+    } else {
+      resetHandle();
+    }
+  }
+
+  handle.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', () => { if (isDragging) { isDragging = false; resetHandle(); } });
+
+  // Direct Click or Tap on Track triggers smooth swipe across and action
+  track.addEventListener('click', (e) => {
+    if (track.classList.contains('disabled')) {
+      alert('Please navigate to an active job listing (LinkedIn, Indeed, etc.) or click "Test Demo SDE Role" below.');
+      return;
+    }
+    if (!isDragging) {
+      triggerTailorAction();
+    }
+  });
+
+  window.addEventListener('resize', updateMaxRight);
+  setTimeout(updateMaxRight, 100);
 }
