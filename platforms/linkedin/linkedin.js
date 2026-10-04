@@ -9,18 +9,17 @@ class LinkedInPlatform extends BasePlatform {
   }
 
   detect(url, doc = document) {
-    const host = window.location.hostname.toLowerCase();
-    const href = window.location.href.toLowerCase();
-    return host.includes('linkedin.com') && (
-      href.includes('/jobs/') ||
-      Boolean(doc.querySelector('.jobs-description, #job-details, .job-details-jobs-unified-top-card'))
+    const target = (url || window.location.href || '').toLowerCase();
+    const isLiUrl = target.includes('linkedin.com');
+    const hasLiDom = Boolean(doc.querySelector('.jobs-apply-button, .jobs-easy-apply-modal, .job-details-jobs-unified-top-card, .jobs-description, #job-details'));
+    return (isLiUrl || hasLiDom) && (
+      target.includes('/jobs/') || hasLiDom
     );
   }
 
   canApply(doc = document) {
     const applyBtn = this.findEasyApplyButton(doc);
     if (!applyBtn) {
-      // Check if external apply is present
       const anyApply = doc.querySelector('.jobs-apply-button, .jobs-s-apply button');
       if (anyApply) {
         return { canApply: false, reason: 'External Application (Directs to company site, not LinkedIn Easy Apply)' };
@@ -41,8 +40,8 @@ class LinkedInPlatform extends BasePlatform {
     ].join(', ')));
 
     for (const btn of candidates) {
+      if (!this.isElementVisible(btn)) continue;
       const text = (btn.innerText || btn.getAttribute('aria-label') || '').toLowerCase();
-      // Must contain "easy apply", not just "apply"
       if (text.includes('easy apply') || btn.getAttribute('data-is-easy-apply') === 'true') {
         return btn;
       }
@@ -54,7 +53,7 @@ class LinkedInPlatform extends BasePlatform {
     onStatus('⚡ [LinkedIn] Checking for Easy Apply button...');
     const check = this.canApply(document);
     if (!check.canApply) {
-      onStatus(`❌ [LinkedIn] ${check.reason}`);
+      onStatus(`⚠️ [LinkedIn] ${check.reason}`);
       return { success: false, reason: check.reason };
     }
 
@@ -82,10 +81,14 @@ class LinkedInPlatform extends BasePlatform {
 
     while (stepCount < maxSteps) {
       stepCount++;
+      await this.sleep(40);
       onStatus(`⚡ [LinkedIn] Step ${stepCount}: Fast-filling questions & inputs...`);
 
       // Fill visible fields on this step
       const filled = this.fillVisibleFields(modal, context, resumeBlob);
+      if (filled > 0) {
+        onStatus(`✓ [LinkedIn] Auto-filled ${filled} input fields.`);
+      }
 
       // Check for errors on current step
       const errorMsg = modal.querySelector('.artdeco-inline-feedback--error, [data-test-form-element-error-messages]');
@@ -93,20 +96,20 @@ class LinkedInPlatform extends BasePlatform {
         onStatus(`⚠️ [LinkedIn] Note: Required question encountered: "${errorMsg.innerText.trim().slice(0, 50)}..."`);
       }
 
-      // Check primary action buttons in modal footer
+      // Check primary action buttons in modal footer (ONLY VISIBLE ONES)
       const submitBtn = this.findButtonByText(modal, [/submit application/i, /^submit$/i])
-        || modal.querySelector('button[aria-label="Submit application"]');
+        || (this.isElementVisible(modal.querySelector('button[aria-label="Submit application"]')) ? modal.querySelector('button[aria-label="Submit application"]') : null);
 
       if (submitBtn) {
-        onStatus('⚡ [LinkedIn] Final Review Reached! Submitting application...');
+        onStatus('⚡ [LinkedIn] Final Review reached! Submitting application...');
         submitBtn.click();
-        await this.waitForElement('.artdeco-modal__dismiss, [data-test-modal-close-btn]', 2000, 50);
-        onStatus('✅ [LinkedIn] Application successfully submitted via Easy Apply!');
+        await this.waitForElement('.artdeco-modal__dismiss, [data-test-modal-close-btn], .modal-close-btn', 600, 50);
+        onStatus('🎉 [LinkedIn] Application successfully submitted via Easy Apply!');
         return { success: true, status: 'submitted', steps: stepCount };
       }
 
       const reviewBtn = this.findButtonByText(modal, [/review your application/i, /^review$/i])
-        || modal.querySelector('button[aria-label="Review your application"]');
+        || (this.isElementVisible(modal.querySelector('button[aria-label="Review your application"]')) ? modal.querySelector('button[aria-label="Review your application"]') : null);
 
       if (reviewBtn) {
         onStatus('⚡ [LinkedIn] Review step reached...');
@@ -116,7 +119,7 @@ class LinkedInPlatform extends BasePlatform {
       }
 
       const nextBtn = this.findButtonByText(modal, [/continue to next step/i, /^next$/i, /^continue$/i])
-        || modal.querySelector('button[aria-label="Continue to next step"], button[data-easy-apply-next-button]');
+        || (this.isElementVisible(modal.querySelector('button[aria-label="Continue to next step"], button[data-easy-apply-next-button]')) ? modal.querySelector('button[aria-label="Continue to next step"], button[data-easy-apply-next-button]') : null);
 
       if (nextBtn) {
         nextBtn.click();
@@ -125,8 +128,8 @@ class LinkedInPlatform extends BasePlatform {
       }
 
       // If no next, review, or submit button is found, check if modal closed (submitted)
-      if (!document.body.contains(modal) || modal.getAttribute('aria-hidden') === 'true') {
-        onStatus('✅ [LinkedIn] Easy Apply completed!');
+      if (!document.body.contains(modal) || modal.getAttribute('aria-hidden') === 'true' || modal.closest('[style*="display: none"]')) {
+        onStatus('🎉 [LinkedIn] Easy Apply completed!');
         return { success: true, status: 'completed', steps: stepCount };
       }
 
@@ -136,21 +139,6 @@ class LinkedInPlatform extends BasePlatform {
     }
 
     return { success: false, reason: 'Exceeded maximum step threshold' };
-  }
-
-  findButtonByText(container, patterns) {
-    const buttons = Array.from(container.querySelectorAll('button:not([disabled])'));
-    for (const btn of buttons) {
-      const text = (btn.innerText || btn.getAttribute('aria-label') || '').trim();
-      for (const pat of patterns) {
-        if (pat.test(text)) return btn;
-      }
-    }
-    return null;
-  }
-
-  sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
   }
 }
 

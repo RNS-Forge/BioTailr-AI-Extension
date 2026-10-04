@@ -9,8 +9,8 @@ class LeverPlatform extends BasePlatform {
   }
 
   detect(url, doc = document) {
-    const host = window.location.hostname.toLowerCase();
-    return host.includes('lever.co') || Boolean(doc.querySelector('.application-form, .postings-btn-wrapper, form[action*="lever"]'));
+    const target = (url || window.location.href || '').toLowerCase();
+    return target.includes('lever.co') || Boolean(doc.querySelector('.application-form, .postings-btn-wrapper, form[action*="lever"]'));
   }
 
   canApply(doc = document) {

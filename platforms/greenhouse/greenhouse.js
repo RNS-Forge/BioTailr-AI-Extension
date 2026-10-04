@@ -9,8 +9,8 @@ class GreenhousePlatform extends BasePlatform {
   }
 
   detect(url, doc = document) {
-    const host = window.location.hostname.toLowerCase();
-    return host.includes('greenhouse.io') || Boolean(doc.querySelector('#application_form, #grnhse_app, form[action*="greenhouse"]'));
+    const target = (url || window.location.href || '').toLowerCase();
+    return target.includes('greenhouse.io') || Boolean(doc.querySelector('#application_form, #grnhse_app, form[action*="greenhouse"]'));
   }
 
   canApply(doc = document) {

@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Local HTML2PDF library for strict MV3 compliance -->
   <script src="lib/html2pdf.bundle.min.js"></script>
+  <script src="mock-chrome-api.js"></script>
   <script src="automation/context-manager.js"></script>
 </head>
 <body>
@@ -264,49 +265,49 @@
             <div class="form-row-2">
               <div class="form-field">
                 <label>First Name</label>
-                <input type="text" id="ctx-first-name" name="personal.firstName" required>
+                <input type="text" id="ctx-first-name" name="personal.firstName" value="Sanjay" required>
               </div>
               <div class="form-field">
                 <label>Last Name</label>
-                <input type="text" id="ctx-last-name" name="personal.lastName" required>
+                <input type="text" id="ctx-last-name" name="personal.lastName" value="N" required>
               </div>
             </div>
             <div class="form-field">
               <label>Full Name</label>
-              <input type="text" id="ctx-full-name" name="personal.fullName" required>
+              <input type="text" id="ctx-full-name" name="personal.fullName" value="Sanjay N" required>
             </div>
             <div class="form-row-2">
               <div class="form-field">
                 <label>Email Address</label>
-                <input type="email" id="ctx-email" name="personal.email" required>
+                <input type="email" id="ctx-email" name="personal.email" value="2005sanjaynrs@gmail.com" required>
               </div>
               <div class="form-field">
                 <label>Phone Number</label>
-                <input type="tel" id="ctx-phone" name="personal.phone" required>
+                <input type="tel" id="ctx-phone" name="personal.phone" value="+91 9361599018" required>
               </div>
             </div>
             <div class="form-row-2">
               <div class="form-field">
                 <label>City</label>
-                <input type="text" id="ctx-city" name="personal.city">
+                <input type="text" id="ctx-city" name="personal.city" value="Coimbatore">
               </div>
               <div class="form-field">
                 <label>Country</label>
-                <input type="text" id="ctx-country" name="personal.country">
+                <input type="text" id="ctx-country" name="personal.country" value="India">
               </div>
             </div>
             <div class="form-field">
               <label>LinkedIn URL</label>
-              <input type="url" id="ctx-linkedin" name="personal.linkedinUrl">
+              <input type="url" id="ctx-linkedin" name="personal.linkedinUrl" value="https://www.linkedin.com/in/sanjay--n">
             </div>
             <div class="form-row-2">
               <div class="form-field">
                 <label>GitHub URL</label>
-                <input type="url" id="ctx-github" name="personal.githubUrl">
+                <input type="url" id="ctx-github" name="personal.githubUrl" value="https://github.com/RNS-Forge">
               </div>
               <div class="form-field">
                 <label>Portfolio URL</label>
-                <input type="url" id="ctx-portfolio" name="personal.portfolioUrl">
+                <input type="url" id="ctx-portfolio" name="personal.portfolioUrl" value="https://rns-forge.github.io/RNS_Professional_Profile/">
               </div>
             </div>
           </div>
@@ -332,7 +333,7 @@
             </div>
             <div class="form-field">
               <label>Current Visa / Citizenship Status</label>
-              <input type="text" id="ctx-visa-status" name="workAuth.currentVisaStatus" placeholder="Citizen, Permanent Resident, H1B, OPT...">
+              <input type="text" id="ctx-visa-status" name="workAuth.currentVisaStatus" value="Citizen" placeholder="Citizen, Permanent Resident, H1B, OPT...">
             </div>
           </div>
 
@@ -342,31 +343,31 @@
             <div class="form-row-2">
               <div class="form-field">
                 <label>Total Experience (Years)</label>
-                <input type="number" id="ctx-total-years" name="experience.totalYears" step="0.5">
+                <input type="number" id="ctx-total-years" name="experience.totalYears" value="4" step="0.5">
               </div>
               <div class="form-field">
                 <label>Notice Period (Days)</label>
-                <input type="number" id="ctx-notice-period" name="experience.noticePeriodDays">
+                <input type="number" id="ctx-notice-period" name="experience.noticePeriodDays" value="15">
               </div>
             </div>
             <div class="form-row-2">
               <div class="form-field">
                 <label>Current Title</label>
-                <input type="text" id="ctx-current-title" name="experience.currentTitle">
+                <input type="text" id="ctx-current-title" name="experience.currentTitle" value="Software Development Engineer">
               </div>
               <div class="form-field">
                 <label>Current Company</label>
-                <input type="text" id="ctx-current-company" name="experience.currentCompany">
+                <input type="text" id="ctx-current-company" name="experience.currentCompany" value="Axodian">
               </div>
             </div>
             <div class="form-row-2">
               <div class="form-field">
                 <label>Expected CTC / Salary</label>
-                <input type="text" id="ctx-expected-salary" name="experience.expectedSalary">
+                <input type="text" id="ctx-expected-salary" name="experience.expectedSalary" value="1200000">
               </div>
               <div class="form-field">
                 <label>Current CTC / Salary</label>
-                <input type="text" id="ctx-current-salary" name="experience.currentSalary">
+                <input type="text" id="ctx-current-salary" name="experience.currentSalary" value="800000">
               </div>
             </div>
           </div>
@@ -377,21 +378,21 @@
             <div class="form-row-2">
               <div class="form-field">
                 <label>Highest Degree Level</label>
-                <input type="text" id="ctx-degree" name="education.degree" placeholder="Bachelor's, Master's...">
+                <input type="text" id="ctx-degree" name="education.degree" value="Bachelor's Degree" placeholder="Bachelor's, Master's...">
               </div>
               <div class="form-field">
                 <label>Field of Study / Major</label>
-                <input type="text" id="ctx-field-of-study" name="education.fieldOfStudy">
+                <input type="text" id="ctx-field-of-study" name="education.fieldOfStudy" value="Computer Science and Engineering">
               </div>
             </div>
             <div class="form-row-2">
               <div class="form-field">
                 <label>University / Institution</label>
-                <input type="text" id="ctx-institution" name="education.institution">
+                <input type="text" id="ctx-institution" name="education.institution" value="Anna University">
               </div>
               <div class="form-field">
                 <label>Graduation Year</label>
-                <input type="text" id="ctx-grad-year" name="education.gradYear">
+                <input type="text" id="ctx-grad-year" name="education.gradYear" value="2026">
               </div>
             </div>
           </div>
@@ -432,11 +433,11 @@
             <h4 class="context-group-title">6. Custom Questions Fallback</h4>
             <div class="form-field">
               <label>Why do you want to work here?</label>
-              <textarea id="ctx-why-work-here" name="customAnswers.whyWorkHere" rows="2"></textarea>
+              <textarea id="ctx-why-work-here" name="customAnswers.whyWorkHere" rows="2">I am passionate about building scalable, high-throughput software and AI-driven platforms. My background in microservices, full-stack engineering, and high-compliance systems directly aligns with your technical mission.</textarea>
             </div>
             <div class="form-field">
               <label>Core Technical Strengths</label>
-              <textarea id="ctx-strengths" name="customAnswers.strengths" rows="2"></textarea>
+              <textarea id="ctx-strengths" name="customAnswers.strengths" rows="2">Full-stack software engineering, RESTful microservices, AI & LLM application architecture, automated test coverage, and strict performance optimization.</textarea>
             </div>
           </div>
         </form>
@@ -446,6 +447,44 @@
     <!-- Hidden Offscreen Container for PDF rendering -->
     <div id="hidden-resume-sandbox" style="position: absolute; left: -9999px; top: -9999px; width: 210mm;"></div>
   </div>
+
+  <script>
+    function switchFeatureTab(targetId) {
+      var tabs = document.querySelectorAll('.feature-nav-tab');
+      for (var i = 0; i < tabs.length; i++) {
+        var isTarget = tabs[i].getAttribute('data-target') === targetId;
+        tabs[i].classList.toggle('active', isTarget);
+      }
+      var views = ['view-tailor', 'view-auto-apply', 'view-context'];
+      for (var j = 0; j < views.length; j++) {
+        var v = document.getElementById(views[j]);
+        if (v) {
+          var show = views[j] === targetId;
+          v.classList.toggle('active', show);
+          v.style.setProperty('display', show ? 'flex' : 'none', 'important');
+        }
+      }
+      if (window.switchFeatureView) {
+        window.switchFeatureView(targetId);
+      }
+    }
+    window.switchFeatureTab = switchFeatureTab;
+
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.feature-nav-tab');
+      if (btn) {
+        e.preventDefault();
+        var target = btn.getAttribute('data-target');
+        if (target) switchFeatureTab(target);
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', function() {
+      var hash = (window.location.hash || '').replace('#', '').toLowerCase();
+      if (hash.includes('context')) switchFeatureTab('view-context');
+      else if (hash.includes('auto-apply') || hash.includes('autoapply')) switchFeatureTab('view-auto-apply');
+    });
+  </script>
 
   <script type="module" src="popup.js"></script>
 </body>

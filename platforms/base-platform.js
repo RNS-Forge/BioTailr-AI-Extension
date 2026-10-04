@@ -57,6 +57,16 @@ class BasePlatform {
   }
 
   /**
+   * Check if an element is currently visible on the page
+   */
+  isElementVisible(el) {
+    if (!el) return false;
+    const style = (typeof window !== 'undefined' && window.getComputedStyle) ? window.getComputedStyle(el) : el.style;
+    if (style && (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0')) return false;
+    return (el.offsetWidth > 0 || el.offsetHeight > 0 || (el.getClientRects && el.getClientRects().length > 0));
+  }
+
+  /**
    * Fill all visible interactive fields in a container using FastFormSolver
    */
   fillVisibleFields(container, context, resumeBlob) {
@@ -68,7 +78,10 @@ class BasePlatform {
 
     inputs.forEach((input) => {
       const type = (input.getAttribute('type') || '').toLowerCase();
-      if (type === 'file' && resumeBlob) {
+      const isFile = type === 'file';
+      if (!isFile && !this.isElementVisible(input)) return;
+
+      if (isFile && resumeBlob) {
         const attached = solver.attachPdfBlob(input, resumeBlob, `${context.personal?.fullName || 'Candidate'}_Resume_ATS100.pdf`);
         if (attached) filledCount++;
       } else {
@@ -81,9 +94,6 @@ class BasePlatform {
   }
 
   /**
-   * Execute Fast Auto Apply
-   */
-  /**
    * Fast sleep utility (no long humanized throttling)
    */
   sleep(ms) {
@@ -91,12 +101,13 @@ class BasePlatform {
   }
 
   /**
-   * Search container for interactive button matching regex patterns
+   * Search container for visible interactive button matching regex patterns
    */
   findButtonByText(container, patterns) {
     if (!container) return null;
-    const buttons = Array.from(container.querySelectorAll('button:not([disabled]), input[type="submit"], a[role="button"]'));
+    const buttons = Array.from(container.querySelectorAll('button:not([disabled]), input[type="submit"]:not([disabled]), a[role="button"]:not([disabled])'));
     for (const btn of buttons) {
+      if (!this.isElementVisible(btn)) continue;
       const text = (btn.innerText || btn.value || btn.getAttribute('aria-label') || '').trim();
       for (const pat of patterns) {
         if (pat.test(text)) return btn;

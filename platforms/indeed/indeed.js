@@ -9,10 +9,8 @@ class IndeedPlatform extends BasePlatform {
   }
 
   detect(url, doc = document) {
-    const host = window.location.hostname.toLowerCase();
-    return host.includes('indeed.com') && (
-      url.includes('/viewjob') || url.includes('/jobs') || Boolean(doc.querySelector('#jobDescriptionText, .jobsearch-JobComponent'))
-    );
+    const target = (url || window.location.href || '').toLowerCase();
+    return target.includes('indeed.com') || Boolean(doc.querySelector('#indeedApplyButton, .jobsearch-JobComponent, .ia-Container, #jobDescriptionText'));
   }
 
   canApply(doc = document) {

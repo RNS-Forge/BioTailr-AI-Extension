@@ -63,18 +63,39 @@ const STORAGE_KEY = 'biotailr_candidate_context';
  */
 async function loadCandidateContext() {
   return new Promise((resolve) => {
+    let resolved = false;
+    const safetyTimer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(DEFAULT_CANDIDATE_CONTEXT);
+      }
+    }, 150);
+
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      chrome.storage.local.get([STORAGE_KEY], (res) => {
-        if (res && res[STORAGE_KEY]) {
-          // Merge with defaults in case new fields were added
-          const merged = deepMerge(DEFAULT_CANDIDATE_CONTEXT, res[STORAGE_KEY]);
-          resolve(merged);
-        } else {
+      try {
+        chrome.storage.local.get([STORAGE_KEY], (res) => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(safetyTimer);
+          if (res && res[STORAGE_KEY]) {
+            resolve(deepMerge(DEFAULT_CANDIDATE_CONTEXT, res[STORAGE_KEY]));
+          } else {
+            resolve(DEFAULT_CANDIDATE_CONTEXT);
+          }
+        });
+      } catch (err) {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(safetyTimer);
           resolve(DEFAULT_CANDIDATE_CONTEXT);
         }
-      });
+      }
     } else {
-      resolve(DEFAULT_CANDIDATE_CONTEXT);
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(safetyTimer);
+        resolve(DEFAULT_CANDIDATE_CONTEXT);
+      }
     }
   });
 }
