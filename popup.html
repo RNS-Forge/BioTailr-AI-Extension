@@ -1,15 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BioTailr AI - 100% ATS Resume Tailoring Engine</title>
+  <title>BioTailr AI - 100% ATS Resume Tailoring Engine & Fast Auto Apply</title>
   <link rel="stylesheet" href="popup.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Local HTML2PDF library for strict MV3 compliance -->
   <script src="lib/html2pdf.bundle.min.js"></script>
+  <script src="automation/context-manager.js"></script>
 </head>
 <body>
   <div class="extension-container">
@@ -46,126 +47,404 @@
       </div>
     </header>
 
-    <!-- Job Manner Tabs (Multi-Job Queue) -->
-    <nav class="job-tabs-bar" id="job-tabs-bar">
-      <div class="job-tabs-list" id="job-tabs-list">
-        <!-- Dynamically injected job tabs -->
-      </div>
-      <button class="btn-new-job-tab" id="btn-add-new-job" title="Scan Another Job in New Tab">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span>New Job</span>
+    <!-- Top Feature Navigation Tabs -->
+    <nav class="feature-tabs-bar">
+      <button class="feature-nav-tab active" id="tab-nav-tailor" data-target="view-tailor">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+        <span>Tailor Resume</span>
+      </button>
+      <button class="feature-nav-tab" id="tab-nav-auto-apply" data-target="view-auto-apply">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        <span>Auto Apply</span>
+        <span class="fast-pill-badge">FAST</span>
+      </button>
+      <button class="feature-nav-tab" id="tab-nav-context" data-target="view-context">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>Context</span>
       </button>
     </nav>
 
-    <!-- Main Viewport -->
-    <main class="chat-viewport" id="chat-viewport">
-      <!-- 1. Center Scan Hero (Shown when active job is not yet scanned) -->
-      <section class="scan-hero" id="scan-hero">
-        <div class="hero-brand-symbol-box">
-          <div class="hero-ambient-glow"></div>
-          <svg class="official-hero-svg" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="180" y="45" width="245" height="400" rx="8" stroke="#1e1b78" stroke-width="16" stroke-linejoin="round" />
-            <line x1="225" y1="100" x2="385" y2="100" stroke="#1e1b78" stroke-width="13" stroke-linecap="round" />
-            <line x1="225" y1="140" x2="385" y2="140" stroke="#1e1b78" stroke-width="13" stroke-linecap="round" />
-            <line x1="225" y1="180" x2="385" y2="180" stroke="#1e1b78" stroke-width="13" stroke-linecap="round" />
-            <line x1="180" y1="185" x2="180" y2="405" stroke="#1e1b78" stroke-width="17" stroke-linecap="round" />
-            <path d="M 180 185 L 265 185 C 322 185, 322 290, 265 290 L 180 290" stroke="#1e1b78" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M 180 290 L 280 290 C 348 290, 348 405, 280 405 L 180 405" stroke="#1e1b78" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M 102 22 C 112 22, 112 55, 112 110 L 105 465 C 102 492, 98 492, 95 465 L 88 110 C 88 55, 88 22, 98 22 Z" fill="#1e1b78" />
-            <rect x="97" y="60" width="7" height="38" rx="3.5" fill="#ffffff" />
-            <path class="hero-animated-thread" d="M 320 292 C 268 292, 230 335, 195 315 C 160 295, 185 262, 248 262 C 305 262, 330 300, 278 322 C 222 342, 172 305, 156 235 C 140 168, 175 115, 122 75 C 105 62, 78 40, 50 58 C 26 74, 22 118, 46 150 C 64 172, 82 155, 78 132" stroke="#00b49f" stroke-width="14" stroke-linecap="round" fill="none" />
-          </svg>
+    <!-- =========================================================
+         VIEW 1: TAILOR RESUME (Standard Scanning & Customization)
+         ========================================================= -->
+    <div class="feature-view active" id="view-tailor">
+      <!-- Job Manner Tabs (Multi-Job Queue) -->
+      <nav class="job-tabs-bar" id="job-tabs-bar">
+        <div class="job-tabs-list" id="job-tabs-list">
+          <!-- Dynamically injected job tabs -->
+        </div>
+        <button class="btn-new-job-tab" id="btn-add-new-job" title="Scan Another Job in New Tab">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>New Job</span>
+        </button>
+      </nav>
+
+      <!-- Main Viewport -->
+      <main class="chat-viewport" id="chat-viewport">
+        <!-- 1. Center Scan Hero (Shown when active job is not yet scanned) -->
+        <section class="scan-hero" id="scan-hero">
+          <div class="hero-brand-symbol-box">
+            <div class="hero-ambient-glow"></div>
+            <svg class="official-hero-svg" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="180" y="45" width="245" height="400" rx="8" stroke="#1e1b78" stroke-width="16" stroke-linejoin="round" />
+              <line x1="225" y1="100" x2="385" y2="100" stroke="#1e1b78" stroke-width="13" stroke-linecap="round" />
+              <line x1="225" y1="140" x2="385" y2="140" stroke="#1e1b78" stroke-width="13" stroke-linecap="round" />
+              <line x1="225" y1="180" x2="385" y2="180" stroke="#1e1b78" stroke-width="13" stroke-linecap="round" />
+              <line x1="180" y1="185" x2="180" y2="405" stroke="#1e1b78" stroke-width="17" stroke-linecap="round" />
+              <path d="M 180 185 L 265 185 C 322 185, 322 290, 265 290 L 180 290" stroke="#1e1b78" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M 180 290 L 280 290 C 348 290, 348 405, 280 405 L 180 405" stroke="#1e1b78" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M 102 22 C 112 22, 112 55, 112 110 L 105 465 C 102 492, 98 492, 95 465 L 88 110 C 88 55, 88 22, 98 22 Z" fill="#1e1b78" />
+              <rect x="97" y="60" width="7" height="38" rx="3.5" fill="#ffffff" />
+              <path class="hero-animated-thread" d="M 320 292 C 268 292, 230 335, 195 315 C 160 295, 185 262, 248 262 C 305 262, 330 300, 278 322 C 222 342, 172 305, 156 235 C 140 168, 175 115, 122 75 C 105 62, 78 40, 50 58 C 26 74, 22 118, 46 150 C 64 172, 82 155, 78 132" stroke="#00b49f" stroke-width="14" stroke-linecap="round" fill="none" />
+            </svg>
+          </div>
+
+          <div class="hero-titles">
+            <h2 class="hero-main-title">ATS Job Scanner</h2>
+            <p class="hero-sub-title">1-Click tailoring calibrated on Sanjay N's 4 career tracks</p>
+          </div>
+
+          <!-- Real-Time Page Verification Card -->
+          <div class="page-detection-card" id="page-detection-card">
+            <div class="detection-header">
+              <div class="detection-status-pill">
+                <span class="detection-status-dot" id="detection-status-dot"></span>
+                <span class="detection-status-label" id="detection-status-label">Analyzing active tab...</span>
+              </div>
+              <span class="detection-source-badge" id="detection-source-badge">Job Board</span>
+            </div>
+
+            <div class="detection-body">
+              <div class="target-role-title" id="detection-role-display">Target Job Role</div>
+              <div class="detection-details" id="detection-details">
+                <span id="tab-url-text">Checking URL...</span>
+              </div>
+            </div>
+
+            <div class="detection-footer-ribbon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00b49f" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Strict 1-Page A4 &bull; 100% ATS Match &bull; Zero Hallucinations</span>
+            </div>
+          </div>
+
+          <!-- Executive Swipe-To-Tailor Console -->
+          <div class="executive-swipe-console" id="swipe-console">
+            <div class="swipe-track disabled" id="swipe-track" role="button" tabindex="0" aria-label="Swipe to tailor resume">
+              <div class="swipe-track-fill" id="swipe-track-fill"></div>
+              <div class="swipe-label-wrap" id="swipe-label-wrap">
+                <span class="swipe-primary-text" id="swipe-primary-text">NAVIGATE TO A JOB PAGE</span>
+                <span class="swipe-sub-text" id="swipe-sub-text">Open any job posting on LinkedIn, Indeed, etc.</span>
+              </div>
+              <div class="swipe-handle" id="swipe-handle" title="Slide right or click to tailor">
+                <svg class="swipe-handle-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="13 6 19 12 13 18"></polyline>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Helpful Non-Job Page Prompt -->
+          <div class="non-job-notice-box" id="non-job-notice-box">
+            <div class="notice-text">
+              <strong>Job Page Required:</strong> Scan activates when a job listing or career page is active.
+            </div>
+            <button type="button" class="btn-demo-test" id="btn-demo-test">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+              <span>Test Demo SDE Role</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- 2. Active Job Chat & Stream View (Shown once scanning / completed) -->
+        <section class="messages-list" id="messages-list" style="display: none;">
+          <!-- Dynamic chat cards, processing state, and resume cards injected here -->
+        </section>
+      </main>
+
+      <!-- Chat Box Footer (Disabled until scan completes) -->
+      <footer class="ext-footer">
+        <div class="chat-status-bar" id="chat-status-bar">
+          <svg class="status-icon-svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span id="chat-status-label">Scan a job page to activate the AI tailoring chat</span>
         </div>
 
-        <div class="hero-titles">
-          <h2 class="hero-main-title">ATS Job Scanner</h2>
-          <p class="hero-sub-title">1-Click tailoring calibrated on Sanjay N's 4 career tracks</p>
-        </div>
-
-        <!-- Real-Time Page Verification Card -->
-        <div class="page-detection-card" id="page-detection-card">
-          <div class="detection-header">
-            <div class="detection-status-pill">
-              <span class="detection-status-dot" id="detection-status-dot"></span>
-              <span class="detection-status-label" id="detection-status-label">Analyzing active tab...</span>
-            </div>
-            <span class="detection-source-badge" id="detection-source-badge">Job Board</span>
-          </div>
-
-          <div class="detection-body">
-            <div class="target-role-title" id="detection-role-display">Target Job Role</div>
-            <div class="detection-details" id="detection-details">
-              <span id="tab-url-text">Checking URL...</span>
-            </div>
-          </div>
-
-          <div class="detection-footer-ribbon">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00b49f" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Strict 1-Page A4 &bull; 100% ATS Match &bull; Zero Hallucinations</span>
-          </div>
-        </div>
-
-        <!-- Executive Swipe-To-Tailor Console (Light, Attractive, Professional, No Rotating Animation) -->
-        <div class="executive-swipe-console" id="swipe-console">
-          <div class="swipe-track disabled" id="swipe-track" role="button" tabindex="0" aria-label="Swipe to tailor resume">
-            <div class="swipe-track-fill" id="swipe-track-fill"></div>
-            <div class="swipe-label-wrap" id="swipe-label-wrap">
-              <span class="swipe-primary-text" id="swipe-primary-text">NAVIGATE TO A JOB PAGE</span>
-              <span class="swipe-sub-text" id="swipe-sub-text">Open any job posting on LinkedIn, Indeed, etc.</span>
-            </div>
-            <div class="swipe-handle" id="swipe-handle" title="Slide right or click to tailor">
-              <svg class="swipe-handle-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="13 6 19 12 13 18"></polyline>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- Helpful Non-Job Page Prompt -->
-        <div class="non-job-notice-box" id="non-job-notice-box">
-          <div class="notice-text">
-            <strong>Job Page Required:</strong> Scan activates when a job listing or career page is active.
-          </div>
-          <button type="button" class="btn-demo-test" id="btn-demo-test">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-            <span>Test Demo SDE Role</span>
+        <div class="chat-input-wrapper">
+          <textarea 
+            id="chat-input" 
+            class="chat-input-field" 
+            rows="1" 
+            placeholder="Scan a job page to enable AI assistant..." 
+            disabled
+          ></textarea>
+          <button class="send-btn" id="btn-send" title="Send revision prompt" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
           </button>
         </div>
-      </section>
+      </footer>
+    </div>
 
-      <!-- 2. Active Job Chat & Stream View (Shown once scanning / completed) -->
-      <section class="messages-list" id="messages-list" style="display: none;">
-        <!-- Dynamic chat cards, processing state, and resume cards injected here -->
-      </section>
-    </main>
+    <!-- =========================================================
+         VIEW 2: AUTO APPLY (High-Speed Automated Application Runner)
+         ========================================================= -->
+    <div class="feature-view" id="view-auto-apply">
+      <div class="auto-apply-viewport">
+        <!-- Detection Status Card -->
+        <div class="apply-status-card" id="apply-status-card">
+          <div class="apply-card-top">
+            <span class="platform-badge" id="auto-apply-platform-badge">Detecting Platform...</span>
+            <span class="apply-eligibility-pill" id="auto-apply-eligibility-pill">Scanning</span>
+          </div>
+
+          <div class="apply-card-role-wrap">
+            <h3 class="apply-role-title" id="auto-apply-job-title">Navigate to a Job Listing</h3>
+            <p class="apply-company-sub" id="auto-apply-company-name">Open LinkedIn, Indeed, Greenhouse, or Lever</p>
+          </div>
+
+          <div class="apply-card-notes" id="auto-apply-status-notes">
+            <span>BioTailr will automatically match your Context profile &amp; attach a 100% ATS Tailored Resume.</span>
+          </div>
+        </div>
+
+        <!-- Fast Apply Action Console -->
+        <div class="fast-apply-action-box">
+          <button class="btn-fast-auto-apply" id="btn-fast-auto-apply" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span id="btn-fast-apply-text">FAST AUTO APPLY (1-CLICK)</span>
+          </button>
+          <div class="fast-apply-sub-hint">Sub-100ms instant form completion &bull; Attaches 100% ATS Resume &bull; Zero delay</div>
+        </div>
+
+        <!-- Real-Time Activity Terminal / Log -->
+        <div class="auto-apply-terminal">
+          <div class="terminal-header">
+            <span class="terminal-title">LIVE AUTO-APPLY LOG</span>
+            <button class="terminal-clear-btn" id="btn-clear-terminal">Clear</button>
+          </div>
+          <div class="terminal-feed" id="auto-apply-terminal-feed">
+            <div class="terminal-line info">⚡ High-Speed Fast Apply initialized.</div>
+            <div class="terminal-line">⚡ Context profile loaded: Ready to auto-populate.</div>
+            <div class="terminal-line dim">Waiting for supported job application page...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         VIEW 3: CONTEXT (Candidate Master Profile Management)
+         ========================================================= -->
+    <div class="feature-view" id="view-context">
+      <div class="context-viewport">
+        <div class="context-header-bar">
+          <div>
+            <h3 class="context-heading">Candidate Context</h3>
+            <p class="context-sub">Your master profile. Auto Apply pulls directly from these details.</p>
+          </div>
+          <div class="context-actions">
+            <button class="btn-context-save" id="btn-context-save">Save Profile</button>
+          </div>
+        </div>
+
+        <!-- Toolbar for Reset / Export / Import -->
+        <div class="context-tools-row">
+          <button class="btn-tool-outline" id="btn-context-reset" title="Reset to authentic defaults">Reset</button>
+          <button class="btn-tool-outline" id="btn-context-export" title="Export as JSON file">Export JSON</button>
+          <button class="btn-tool-outline" id="btn-context-import" title="Import from JSON file">Import JSON</button>
+          <input type="file" id="input-import-json" accept=".json" style="display: none;">
+        </div>
+
+        <!-- Context Form Accordions -->
+        <form class="context-form" id="context-form">
+          <!-- 1. Personal & Contact Info -->
+          <div class="context-group">
+            <h4 class="context-group-title">1. Personal &amp; Contact Details</h4>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>First Name</label>
+                <input type="text" id="ctx-first-name" name="personal.firstName" required>
+              </div>
+              <div class="form-field">
+                <label>Last Name</label>
+                <input type="text" id="ctx-last-name" name="personal.lastName" required>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Full Name</label>
+              <input type="text" id="ctx-full-name" name="personal.fullName" required>
+            </div>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Email Address</label>
+                <input type="email" id="ctx-email" name="personal.email" required>
+              </div>
+              <div class="form-field">
+                <label>Phone Number</label>
+                <input type="tel" id="ctx-phone" name="personal.phone" required>
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>City</label>
+                <input type="text" id="ctx-city" name="personal.city">
+              </div>
+              <div class="form-field">
+                <label>Country</label>
+                <input type="text" id="ctx-country" name="personal.country">
+              </div>
+            </div>
+            <div class="form-field">
+              <label>LinkedIn URL</label>
+              <input type="url" id="ctx-linkedin" name="personal.linkedinUrl">
+            </div>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>GitHub URL</label>
+                <input type="url" id="ctx-github" name="personal.githubUrl">
+              </div>
+              <div class="form-field">
+                <label>Portfolio URL</label>
+                <input type="url" id="ctx-portfolio" name="personal.portfolioUrl">
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Work Authorization & Legal -->
+          <div class="context-group">
+            <h4 class="context-group-title">2. Work Authorization &amp; Legal</h4>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Authorized to Work in Target Country?</label>
+                <select id="ctx-work-auth" name="workAuth.authorizedInCountry">
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Require Visa Sponsorship?</label>
+                <select id="ctx-sponsorship" name="workAuth.needSponsorship">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Current Visa / Citizenship Status</label>
+              <input type="text" id="ctx-visa-status" name="workAuth.currentVisaStatus" placeholder="Citizen, Permanent Resident, H1B, OPT...">
+            </div>
+          </div>
+
+          <!-- 3. Professional Experience & Compensation -->
+          <div class="context-group">
+            <h4 class="context-group-title">3. Experience &amp; Compensation</h4>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Total Experience (Years)</label>
+                <input type="number" id="ctx-total-years" name="experience.totalYears" step="0.5">
+              </div>
+              <div class="form-field">
+                <label>Notice Period (Days)</label>
+                <input type="number" id="ctx-notice-period" name="experience.noticePeriodDays">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Current Title</label>
+                <input type="text" id="ctx-current-title" name="experience.currentTitle">
+              </div>
+              <div class="form-field">
+                <label>Current Company</label>
+                <input type="text" id="ctx-current-company" name="experience.currentCompany">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Expected CTC / Salary</label>
+                <input type="text" id="ctx-expected-salary" name="experience.expectedSalary">
+              </div>
+              <div class="form-field">
+                <label>Current CTC / Salary</label>
+                <input type="text" id="ctx-current-salary" name="experience.currentSalary">
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Education -->
+          <div class="context-group">
+            <h4 class="context-group-title">4. Education</h4>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Highest Degree Level</label>
+                <input type="text" id="ctx-degree" name="education.degree" placeholder="Bachelor's, Master's...">
+              </div>
+              <div class="form-field">
+                <label>Field of Study / Major</label>
+                <input type="text" id="ctx-field-of-study" name="education.fieldOfStudy">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>University / Institution</label>
+                <input type="text" id="ctx-institution" name="education.institution">
+              </div>
+              <div class="form-field">
+                <label>Graduation Year</label>
+                <input type="text" id="ctx-grad-year" name="education.gradYear">
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. EEO & Voluntary Disclosures -->
+          <div class="context-group">
+            <h4 class="context-group-title">5. EEO &amp; Disclosures</h4>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Gender</label>
+                <select id="ctx-gender" name="eeo.gender">
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Veteran Status</label>
+                <select id="ctx-veteran" name="eeo.veteranStatus">
+                  <option value="No">I am not a protected veteran</option>
+                  <option value="Yes">I identify as a protected veteran</option>
+                  <option value="Decline">I decline to identify</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Disability Status</label>
+              <select id="ctx-disability" name="eeo.disabilityStatus">
+                <option value="No">No, I do not have a disability</option>
+                <option value="Yes">Yes, I have a disability</option>
+                <option value="Decline">I do not wish to answer</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 6. Custom Answers for Fast Fill -->
+          <div class="context-group">
+            <h4 class="context-group-title">6. Custom Questions Fallback</h4>
+            <div class="form-field">
+              <label>Why do you want to work here?</label>
+              <textarea id="ctx-why-work-here" name="customAnswers.whyWorkHere" rows="2"></textarea>
+            </div>
+            <div class="form-field">
+              <label>Core Technical Strengths</label>
+              <textarea id="ctx-strengths" name="customAnswers.strengths" rows="2"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Hidden Offscreen Container for PDF rendering -->
     <div id="hidden-resume-sandbox" style="position: absolute; left: -9999px; top: -9999px; width: 210mm;"></div>
-
-    <!-- Chat Box Footer (Disabled until scan completes) -->
-    <footer class="ext-footer">
-      <div class="chat-status-bar" id="chat-status-bar">
-        <svg class="status-icon-svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span id="chat-status-label">Scan a job page to activate the AI tailoring chat</span>
-      </div>
-
-      <div class="chat-input-wrapper">
-        <textarea 
-          id="chat-input" 
-          class="chat-input-field" 
-          rows="1" 
-          placeholder="Scan a job page to enable AI assistant..." 
-          disabled
-        ></textarea>
-        <button class="send-btn" id="btn-send" title="Send revision prompt" disabled>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13"/>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-          </svg>
-        </button>
-      </div>
-    </footer>
   </div>
 
   <script type="module" src="popup.js"></script>

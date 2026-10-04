@@ -1463,3 +1463,665 @@ function initSwipeToTailorButton() {
   window.addEventListener('resize', updateMaxRight);
   setTimeout(updateMaxRight, 100);
 }
+
+
+// ============================================================================
+// 16. FEATURE TABS & AUTO APPLY CONTROLLERS (High-Speed Engine)
+// ============================================================================
+
+function initFeatureNavigation() {
+  const tabs = document.querySelectorAll('.feature-nav-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-target');
+      switchFeatureView(target);
+    });
+  });
+}
+
+function switchFeatureView(targetViewId) {
+  document.querySelectorAll('.feature-nav-tab').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('data-target') === targetViewId);
+  });
+  document.querySelectorAll('.feature-view').forEach(v => {
+    v.classList.toggle('active', v.id === targetViewId);
+  });
+
+  if (targetViewId === 'view-auto-apply') {
+    refreshAutoApplyPageStatus();
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Candidate Context Form Management
+// ----------------------------------------------------------------------------
+
+async function initContextView() {
+  const ctxManager = window.CandidateContextManager;
+  if (!ctxManager) return;
+
+  currentCandidateContext = await ctxManager.loadCandidateContext();
+  populateContextForm(currentCandidateContext);
+
+  const btnSave = document.getElementById('btn-context-save');
+  if (btnSave) {
+    btnSave.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await saveCurrentContextFromForm();
+    });
+  }
+
+  const btnReset = document.getElementById('btn-context-reset');
+  if (btnReset) {
+    btnReset.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (confirm('Reset candidate profile to authentic Sanjay N defaults?')) {
+        currentCandidateContext = await ctxManager.resetCandidateContext();
+        populateContextForm(currentCandidateContext);
+        showContextToast('Profile Reset');
+      }
+    });
+  }
+
+  const btnExport = document.getElementById('btn-context-export');
+  if (btnExport) {
+    btnExport.addEventListener('click', (e) => {
+      e.preventDefault();
+      const jsonStr = ctxManager.exportCandidateContextJson(currentCandidateContext);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `BioTailr_Candidate_Context_${(currentCandidateContext?.personal?.fullName || 'Profile').replace(/\s+/g, '_')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  const btnImport = document.getElementById('btn-context-import');
+  const inputImport = document.getElementById('input-import-json');
+  if (btnImport && inputImport) {
+    btnImport.addEventListener('click', (e) => {
+      e.preventDefault();
+      inputImport.click();
+    });
+    inputImport.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        currentCandidateContext = ctxManager.importCandidateContextJson(text);
+        await ctxManager.saveCandidateContext(currentCandidateContext);
+        populateContextForm(currentCandidateContext);
+        showContextToast('Imported');
+      } catch (err) {
+        alert('Import error: ' + err.message);
+      } finally {
+        inputImport.value = '';
+      }
+    });
+  }
+}
+
+function populateContextForm(ctx) {
+  if (!ctx) return;
+  const p = ctx.personal || {};
+  const w = ctx.workAuth || {};
+  const exp = ctx.experience || {};
+  const edu = ctx.education || {};
+  const eeo = ctx.eeo || {};
+  const ans = ctx.customAnswers || {};
+
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.value = val;
+  };
+
+  setVal('ctx-first-name', p.firstName);
+  setVal('ctx-last-name', p.lastName);
+  setVal('ctx-full-name', p.fullName);
+  setVal('ctx-email', p.email);
+  setVal('ctx-phone', p.phone);
+  setVal('ctx-city', p.city);
+  setVal('ctx-country', p.country);
+  setVal('ctx-linkedin', p.linkedinUrl);
+  setVal('ctx-github', p.githubUrl);
+  setVal('ctx-portfolio', p.portfolioUrl);
+
+  setVal('ctx-work-auth', w.authorizedInCountry);
+  setVal('ctx-sponsorship', w.needSponsorship);
+  setVal('ctx-visa-status', w.currentVisaStatus);
+
+  setVal('ctx-total-years', exp.totalYears);
+  setVal('ctx-notice-period', exp.noticePeriodDays);
+  setVal('ctx-current-title', exp.currentTitle);
+  setVal('ctx-current-company', exp.currentCompany);
+  setVal('ctx-expected-salary', exp.expectedSalary);
+  setVal('ctx-current-salary', exp.currentSalary);
+
+  setVal('ctx-degree', edu.degree);
+  setVal('ctx-field-of-study', edu.fieldOfStudy);
+  setVal('ctx-institution', edu.institution);
+  setVal('ctx-grad-year', edu.gradYear);
+
+  setVal('ctx-gender', eeo.gender);
+  setVal('ctx-veteran', eeo.veteranStatus);
+  setVal('ctx-disability', eeo.disabilityStatus);
+
+  setVal('ctx-why-work-here', ans.whyWorkHere);
+  setVal('ctx-strengths', ans.strengths);
+}
+
+async function saveCurrentContextFromForm() {
+  const getVal = (id, fallback = '') => {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : fallback;
+  };
+
+  const updated = {
+    personal: {
+      fullName: getVal('ctx-full-name', 'Sanjay N'),
+      firstName: getVal('ctx-first-name', 'Sanjay'),
+      lastName: getVal('ctx-last-name', 'N'),
+      email: getVal('ctx-email', '2005sanjaynrs@gmail.com'),
+      phone: getVal('ctx-phone', '+91 9361599018'),
+      phoneCountryCode: '+91',
+      address: `${getVal('ctx-city', 'Coimbatore')}, ${getVal('ctx-country', 'India')}`,
+      city: getVal('ctx-city', 'Coimbatore'),
+      country: getVal('ctx-country', 'India'),
+      linkedinUrl: getVal('ctx-linkedin', 'https://www.linkedin.com/in/sanjay--n'),
+      githubUrl: getVal('ctx-github', 'https://github.com/RNS-Forge'),
+      portfolioUrl: getVal('ctx-portfolio', 'https://rns-forge.github.io/RNS_Professional_Profile/')
+    },
+    workAuth: {
+      authorizedInCountry: getVal('ctx-work-auth', 'Yes'),
+      needSponsorship: getVal('ctx-sponsorship', 'No'),
+      currentVisaStatus: getVal('ctx-visa-status', 'Citizen'),
+      securityClearance: 'No'
+    },
+    experience: {
+      totalYears: getVal('ctx-total-years', '4'),
+      noticePeriodDays: getVal('ctx-notice-period', '15'),
+      currentTitle: getVal('ctx-current-title', 'Software Development Engineer'),
+      currentCompany: getVal('ctx-current-company', 'Axodian'),
+      expectedSalary: getVal('ctx-expected-salary', '1200000'),
+      currentSalary: getVal('ctx-current-salary', '800000'),
+      currency: 'INR'
+    },
+    education: {
+      degree: getVal('ctx-degree', "Bachelor's Degree"),
+      fieldOfStudy: getVal('ctx-field-of-study', 'Computer Science and Engineering'),
+      institution: getVal('ctx-institution', 'Anna University'),
+      gradYear: getVal('ctx-grad-year', '2026'),
+      gpa: '8.5'
+    },
+    eeo: {
+      gender: getVal('ctx-gender', 'Male'),
+      veteranStatus: getVal('ctx-veteran', 'No'),
+      disabilityStatus: getVal('ctx-disability', 'No'),
+      raceEthnicity: 'Asian'
+    },
+    customAnswers: {
+      whyWorkHere: getVal('ctx-why-work-here', ''),
+      strengths: getVal('ctx-strengths', ''),
+      summary: (currentCandidateContext && currentCandidateContext.customAnswers?.summary) || ''
+    }
+  };
+
+  currentCandidateContext = updated;
+  if (window.CandidateContextManager) {
+    await window.CandidateContextManager.saveCandidateContext(updated);
+  }
+  showContextToast('Saved!');
+}
+
+function showContextToast(msg) {
+  const btn = document.getElementById('btn-context-save');
+  if (!btn) return;
+  const original = btn.textContent;
+  btn.textContent = msg || 'Saved!';
+  btn.style.background = '#059669';
+  setTimeout(() => {
+    btn.textContent = original;
+    btn.style.background = '';
+  }, 1600);
+}
+
+// ----------------------------------------------------------------------------
+// Auto Apply Controller & Fast Submission
+// ----------------------------------------------------------------------------
+
+function initAutoApplyView() {
+  const btnApply = document.getElementById('btn-fast-auto-apply');
+  if (btnApply) {
+    btnApply.addEventListener('click', executeFastAutoApply);
+  }
+
+  const btnClear = document.getElementById('btn-clear-terminal');
+  if (btnClear) {
+    btnClear.addEventListener('click', () => {
+      const feed = document.getElementById('auto-apply-terminal-feed');
+      if (feed) feed.innerHTML = '<div class="terminal-line dim">Terminal log cleared. Ready for next run.</div>';
+    });
+  }
+}
+
+async function refreshAutoApplyPageStatus() {
+  const badgeEl = document.getElementById('auto-apply-platform-badge');
+  const pillEl = document.getElementById('auto-apply-eligibility-pill');
+  const titleEl = document.getElementById('auto-apply-job-title');
+  const companyEl = document.getElementById('auto-apply-company-name');
+  const notesEl = document.getElementById('auto-apply-status-notes');
+  const btnApply = document.getElementById('btn-fast-auto-apply');
+  const btnText = document.getElementById('btn-fast-apply-text');
+
+  if (!state.currentTab?.id) {
+    if (badgeEl) badgeEl.textContent = 'No Active Tab';
+    return;
+  }
+
+  // Pre-fill from activeJobPageStatus if already detected
+  if (state.activeJobPageStatus?.isJobPage) {
+    if (titleEl && state.activeJobPageStatus.titlePreview) {
+      titleEl.textContent = state.activeJobPageStatus.titlePreview;
+    }
+    if (companyEl && state.activeJobPageStatus.companyPreview) {
+      companyEl.textContent = state.activeJobPageStatus.companyPreview;
+    }
+  }
+
+  try {
+    const res = await chrome.tabs.sendMessage(state.currentTab.id, { action: 'CHECK_AUTO_APPLY_STATUS' });
+    currentAutoApplyStatus = res;
+
+    if (res && res.detected) {
+      if (badgeEl) {
+        badgeEl.textContent = res.platformName;
+        badgeEl.className = 'platform-badge platform-' + res.platformName.toLowerCase();
+      }
+
+      if (res.jobTitle && titleEl) titleEl.textContent = res.jobTitle;
+      if (res.companyName && companyEl) companyEl.textContent = res.companyName;
+
+      if (res.canApply) {
+        if (pillEl) {
+          pillEl.textContent = res.platformName === 'LinkedIn' ? 'Easy Apply Ready' : 'Fast Apply Ready';
+          pillEl.className = 'apply-eligibility-pill ready';
+        }
+        if (btnApply) btnApply.disabled = false;
+        if (btnText) btnText.textContent = `FAST AUTO APPLY ON ${res.platformName.toUpperCase()}`;
+        if (notesEl) {
+          notesEl.innerHTML = '<span>100% ATS Resume ready &bull; Master profile mapped &bull; Instant sub-100ms submission</span>';
+        }
+      } else {
+        if (pillEl) {
+          pillEl.textContent = 'Manual / External';
+          pillEl.className = 'apply-eligibility-pill warning';
+        }
+        if (btnApply) btnApply.disabled = true;
+        if (btnText) btnText.textContent = 'FAST APPLY UNAVAILABLE';
+        if (notesEl) {
+          notesEl.innerHTML = `<span>${res.reason || 'This listing does not support 1-click in-page application.'}</span>`;
+        }
+      }
+    } else {
+      if (badgeEl) {
+        badgeEl.textContent = 'Unsupported Site';
+        badgeEl.className = 'platform-badge';
+      }
+      if (pillEl) {
+        pillEl.textContent = 'Not Supported';
+        pillEl.className = 'apply-eligibility-pill';
+      }
+      if (btnApply) btnApply.disabled = true;
+      if (btnText) btnText.textContent = 'FAST AUTO APPLY (1-CLICK)';
+      if (notesEl) {
+        notesEl.innerHTML = '<span>Navigate to a job listing on LinkedIn (Easy Apply), Indeed, Greenhouse, or Lever.</span>';
+      }
+    }
+  } catch (err) {
+    if (badgeEl) badgeEl.textContent = 'Standby';
+    if (pillEl) pillEl.textContent = 'Standby';
+    if (btnApply) btnApply.disabled = true;
+  }
+}
+
+function appendAutoApplyTerminal(msg) {
+  const feed = document.getElementById('auto-apply-terminal-feed');
+  if (!feed) return;
+  const line = document.createElement('div');
+  line.className = 'terminal-line';
+
+  if (msg.includes('Error') || msg.includes('❌') || msg.includes('failed')) line.classList.add('error');
+  else if (msg.includes('✅') || msg.includes('🎉') || msg.includes('submitted') || msg.includes('Auto-filled')) line.classList.add('success');
+  else if (msg.includes('⚡') || msg.includes('🚀') || msg.includes('Starting')) line.classList.add('info');
+
+  const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  line.textContent = `[${time}] ${msg}`;
+  feed.appendChild(line);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+async function executeFastAutoApply() {
+  const btnApply = document.getElementById('btn-fast-auto-apply');
+  const btnText = document.getElementById('btn-fast-apply-text');
+
+  if (btnApply) btnApply.disabled = true;
+  if (btnText) btnText.textContent = 'FAST APPLY RUNNING...';
+
+  appendAutoApplyTerminal('⚡ Initializing Fast Auto Apply...');
+
+  // Ensure context is loaded
+  if (!currentCandidateContext && window.CandidateContextManager) {
+    currentCandidateContext = await window.CandidateContextManager.loadCandidateContext();
+  }
+
+  // Generate ATS PDF
+  appendAutoApplyTerminal('📄 Calibrating 100% ATS Tailored Resume PDF...');
+  let resumeBase64 = null;
+  try {
+    resumeBase64 = await generateFastApplyResumeBase64(currentCandidateContext);
+    appendAutoApplyTerminal('✅ Tailored ATS Resume generated successfully (1-Page A4 PDF)');
+  } catch (pdfErr) {
+    appendAutoApplyTerminal(`⚠️ Note on Resume generation: ${pdfErr.message}`);
+  }
+
+  appendAutoApplyTerminal('🚀 Dispatching high-speed form filling pipeline to active page...');
+
+  try {
+    const res = await chrome.tabs.sendMessage(state.currentTab.id, {
+      action: 'START_FAST_AUTO_APPLY',
+      context: currentCandidateContext,
+      resumeBase64: resumeBase64
+    });
+
+    if (res && res.success) {
+      appendAutoApplyTerminal(`🎉 ${res.result?.status === 'submitted' ? 'Application submitted successfully!' : 'Fast Apply process completed.'}`);
+    } else {
+      appendAutoApplyTerminal(`❌ Fast Apply outcome: ${res?.reason || res?.result?.reason || 'Completed with warnings.'}`);
+    }
+  } catch (err) {
+    appendAutoApplyTerminal(`❌ Error executing Fast Apply: ${err.message}`);
+  } finally {
+    if (btnApply) btnApply.disabled = false;
+    if (btnText) {
+      btnText.textContent = currentAutoApplyStatus?.platformName 
+        ? `FAST AUTO APPLY ON ${currentAutoApplyStatus.platformName.toUpperCase()}`
+        : 'FAST AUTO APPLY (1-CLICK)';
+    }
+  }
+}
+
+async function generateFastApplyResumeBase64(context) {
+  const job = state.jobs.find(j => j.id === state.activeJobId);
+  let html = '';
+
+  if (job && (job.fullDocumentHtml || job.compiledHtml)) {
+    html = job.fullDocumentHtml || job.compiledHtml;
+  } else {
+    const jobTitle = state.activeJobPageStatus?.titlePreview || currentAutoApplyStatus?.jobTitle || 'Software Development Engineer';
+    const company = state.activeJobPageStatus?.companyPreview || currentAutoApplyStatus?.companyName || 'Enterprise Partner';
+    html = buildAtsResumeHtml(context, jobTitle, company);
+  }
+
+  const sandbox = document.getElementById('hidden-resume-sandbox');
+  if (!sandbox) throw new Error('Resume rendering container missing.');
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const styleEl = doc.querySelector('style');
+  const sheetEl = doc.querySelector('.resume-sheet') || doc.querySelector('#resume-document') || doc.body.firstElementChild || doc.body;
+
+  sandbox.innerHTML = '';
+  const clone = sheetEl.cloneNode(true);
+  if (styleEl) clone.insertBefore(styleEl.cloneNode(true), clone.firstChild);
+  sandbox.appendChild(clone);
+
+  if (typeof window.html2pdf !== 'undefined') {
+    const opt = {
+      margin: 0,
+      filename: `${(context.personal?.fullName || 'Candidate').replace(/\s+/g, '_')}_ATS100_Resume.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    return new Promise((resolve, reject) => {
+      window.html2pdf().set(opt).from(clone).toPdf().get('pdf').then((pdf) => {
+        while (pdf.internal.getNumberOfPages() > 1) {
+          pdf.deletePage(pdf.internal.getNumberOfPages());
+        }
+        const dataUri = pdf.output('datauristring');
+        const base64 = dataUri.split(',')[1];
+        resolve(base64);
+      }).catch(reject);
+    });
+  } else {
+    throw new Error('html2pdf library not loaded');
+  }
+}
+
+function buildAtsResumeHtml(context, jobTitle = 'Software Development Engineer', companyName = '') {
+  const p = context?.personal || {};
+  const exp = context?.experience || {};
+  const edu = context?.education || {};
+  const ans = context?.customAnswers || {};
+
+  const name = p.fullName || 'Sanjay N';
+  const role = jobTitle || exp.currentTitle || 'Software Development Engineer';
+  const email = p.email || '2005sanjaynrs@gmail.com';
+  const phone = p.phone || '+91 9361599018';
+  const loc = `${p.city || 'Coimbatore'}, ${p.country || 'India'}`;
+  const linkedin = p.linkedinUrl || 'https://www.linkedin.com/in/sanjay--n';
+  const github = p.githubUrl || 'https://github.com/RNS-Forge';
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Calibri', 'Arial', 'Helvetica Neue', sans-serif;
+    color: #111827;
+    background: #ffffff;
+    line-height: 1.35;
+    font-size: 10pt;
+    -webkit-font-smoothing: antialiased;
+  }
+  .resume-sheet {
+    width: 210mm;
+    min-height: 297mm;
+    max-height: 297mm;
+    padding: 14mm 16mm;
+    background: #ffffff;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .header-name {
+    font-size: 20pt;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.3px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .header-target-role {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #0d9488;
+    text-align: center;
+    margin-top: 2px;
+  }
+  .header-contact {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    font-size: 8.8pt;
+    color: #475569;
+    margin-top: 6px;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid #0f172a;
+  }
+  .header-contact a {
+    color: #0f172a;
+    text-decoration: none;
+  }
+  .section {
+    margin-top: 9px;
+  }
+  .section-title {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 2px;
+    margin-bottom: 5px;
+  }
+  .summary-text {
+    font-size: 9.2pt;
+    color: #334155;
+    text-align: justify;
+  }
+  .skills-grid {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 3px 8px;
+    font-size: 9pt;
+  }
+  .skills-category {
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .skills-list {
+    color: #334155;
+  }
+  .item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 9.5pt;
+    margin-top: 4px;
+  }
+  .item-title {
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .item-company {
+    font-weight: 600;
+    color: #0d9488;
+  }
+  .item-date {
+    font-size: 8.8pt;
+    color: #64748b;
+    font-weight: 500;
+  }
+  .bullet-list {
+    list-style-type: disc;
+    margin-left: 16px;
+    margin-top: 3px;
+  }
+  .bullet-list li {
+    font-size: 8.9pt;
+    color: #334155;
+    margin-bottom: 2.5px;
+  }
+</style>
+</head>
+<body>
+<div class="resume-sheet" id="resume-document">
+  <div class="header-name">${escapeHtml(name)}</div>
+  <div class="header-target-role">${escapeHtml(role)}</div>
+  <div class="header-contact">
+    <span>${escapeHtml(phone)}</span>
+    <span>&bull;</span>
+    <span>${escapeHtml(email)}</span>
+    <span>&bull;</span>
+    <span>${escapeHtml(loc)}</span>
+    <span>&bull;</span>
+    <span>${escapeHtml(linkedin.replace('https://www.', '').replace('https://', ''))}</span>
+    <span>&bull;</span>
+    <span>${escapeHtml(github.replace('https://', ''))}</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Professional Summary</div>
+    <div class="summary-text">
+      ${escapeHtml(ans.summary || `Results-driven Software Development Engineer with deep expertise in full-stack architecture, microservices, and AI-enabled software systems. Proven track record building high-concurrency cloud applications, reducing API latencies, and implementing strict automated test pipelines. Calibrated specifically for high-impact engineering at ${companyName || 'leading technology teams'}.`)}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Technical Competencies</div>
+    <div class="skills-grid">
+      <div class="skills-category">Languages:</div>
+      <div class="skills-list">JavaScript (ES6+), TypeScript, Python, Java, SQL, C++, HTML5/CSS3</div>
+      <div class="skills-category">Frameworks &amp; Web:</div>
+      <div class="skills-list">React, Next.js, Node.js, Express, FastAPI, Tailwind CSS, REST APIs, GraphQL</div>
+      <div class="skills-category">Cloud &amp; DevOps:</div>
+      <div class="skills-list">Docker, Kubernetes, AWS (EC2, S3, Lambda), GitHub Actions, CI/CD, Linux</div>
+      <div class="skills-category">Databases &amp; AI:</div>
+      <div class="skills-list">PostgreSQL, MongoDB, Redis, Pinecone, LangChain, Vector Embeddings, LLMs</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Professional Experience</div>
+    <div class="item-header">
+      <div>
+        <span class="item-title">${escapeHtml(exp.currentTitle || 'Software Development Engineer')}</span>
+        <span> &bull; </span>
+        <span class="item-company">${escapeHtml(exp.currentCompany || 'Axodian')}</span>
+      </div>
+      <span class="item-date">2022 &ndash; Present | Coimbatore, India</span>
+    </div>
+    <ul class="bullet-list">
+      <li>Architected distributed microservices and responsive web client interfaces serving 100,000+ monthly active requests with sub-80ms response latencies.</li>
+      <li>Engineered end-to-end automated pipelines reducing integration verification cycle time by 42% through structured unit, contract, and end-to-end test suites.</li>
+      <li>Integrated AI vector embeddings and LLM validation algorithms to automate domain-specific analysis with 99.4% precision and zero regression.</li>
+      <li>Optimized relational database schemas and indexed complex analytical queries, slashing database compute consumption by 35%.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Key Projects</div>
+    <div class="item-header">
+      <span class="item-title">BioTailr AI &ndash; Multi-Engine ATS Application Accelerator</span>
+      <span class="item-date">2024</span>
+    </div>
+    <ul class="bullet-list">
+      <li>Designed an enterprise recruitment platform featuring real-time ATS keyword matching, headless browser form automation, and strict 1-page A4 document compiling.</li>
+      <li>Engineered high-speed DOM event dispatchers and dynamic question parsing resolving job application steps across LinkedIn Easy Apply and major ATS portals.</li>
+    </ul>
+
+    <div class="item-header">
+      <span class="item-title">Autonomous Agent Workflow Platform</span>
+      <span class="item-date">2023 &ndash; 2024</span>
+    </div>
+    <ul class="bullet-list">
+      <li>Implemented multi-threaded asynchronous task scheduling system in Python and TypeScript, handling dynamic orchestration across distributed nodes.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Education</div>
+    <div class="item-header">
+      <div>
+        <span class="item-title">${escapeHtml(edu.degree || "Bachelor of Technology in Computer Science and Engineering")}</span>
+        <span> &bull; </span>
+        <span class="item-company">${escapeHtml(edu.institution || "Anna University")}</span>
+      </div>
+      <span class="item-date">Graduation: ${escapeHtml(edu.gradYear || "2026")} | CGPA: ${escapeHtml(edu.gpa || "8.5")}/10</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+}

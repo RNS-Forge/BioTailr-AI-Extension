@@ -26,6 +26,56 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     return true;
   }
+
+  // Fast Auto Apply Status Check
+  if (request.action === 'CHECK_AUTO_APPLY_STATUS') {
+    try {
+      const OrchestratorClass = window.AutoApplyOrchestrator || (typeof AutoApplyOrchestrator !== 'undefined' ? AutoApplyOrchestrator : null);
+      if (OrchestratorClass) {
+        const orchestrator = new OrchestratorClass();
+        const status = orchestrator.checkPlatformStatus(document);
+        sendResponse({ success: true, ...status });
+      } else {
+        sendResponse({ success: false, detected: false, canApply: false, reason: 'Orchestrator not loaded' });
+      }
+    } catch (err) {
+      sendResponse({ success: false, detected: false, canApply: false, reason: err.message });
+    }
+    return true;
+  }
+
+  // Fast Auto Apply Execution
+  if (request.action === 'START_FAST_AUTO_APPLY') {
+    (async () => {
+      try {
+        const OrchestratorClass = window.AutoApplyOrchestrator || (typeof AutoApplyOrchestrator !== 'undefined' ? AutoApplyOrchestrator : null);
+        if (!OrchestratorClass) throw new Error('AutoApplyOrchestrator is not available on this page.');
+
+        const orchestrator = new OrchestratorClass();
+        let resumeBlob = null;
+
+        if (request.resumeBase64) {
+          const byteChars = atob(request.resumeBase64);
+          const byteNums = new Array(byteChars.length);
+          for (let i = 0; i < byteChars.length; i++) {
+            byteNums[i] = byteChars.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNums);
+          resumeBlob = new Blob([byteArray], { type: 'application/pdf' });
+        }
+
+        const result = await orchestrator.runFastApply(request.context, resumeBlob, (progressMsg) => {
+          chrome.runtime.sendMessage({ action: 'AUTO_APPLY_PROGRESS', message: progressMsg }).catch(() => {});
+        });
+
+        sendResponse({ success: true, result });
+      } catch (err) {
+        chrome.runtime.sendMessage({ action: 'AUTO_APPLY_PROGRESS', message: '❌ Error: ' + err.message }).catch(() => {});
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
+  }
   return true;
 });
 

@@ -38,6 +38,14 @@ chrome.runtime.onConnect.addListener((port) => {
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Forward RESUME_READY and error signals from the web app content script to side panel
+  // Forward Auto Apply progress messages to side panel
+  if (message.action === 'AUTO_APPLY_PROGRESS') {
+    if (sidePanelPort) {
+      try { sidePanelPort.postMessage(message); } catch (e) { sidePanelPort = null; }
+    }
+    return true;
+  }
+
   if (message.action === 'RESUME_READY' || message.action === 'EXT_JOB_ERROR') {
     // Try via port first (reliable when panel is open)
     if (sidePanelPort) {

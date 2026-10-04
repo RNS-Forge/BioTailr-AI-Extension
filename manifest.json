@@ -1,8 +1,8 @@
-{
+﻿{
   "manifest_version": 3,
-  "name": "BioTailr AI — Job Scanner & ATS Assistant",
-  "version": "1.1.0",
-  "description": "Scan any job listing. BioTailr AI generates a tailored 100% ATS resume in the web app and delivers it back for one-step download.",
+  "name": "BioTailr AI - Job Scanner & ATS Assistant",
+  "version": "1.2.0",
+  "description": "Scan any job listing, generate 100% ATS tailored resumes, and high-speed Fast Auto Apply on LinkedIn, Indeed, Greenhouse, and Lever.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -31,7 +31,16 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
+      "js": [
+        "automation/form-solver.js",
+        "platforms/base-platform.js",
+        "platforms/linkedin/linkedin.js",
+        "platforms/indeed/indeed.js",
+        "platforms/greenhouse/greenhouse.js",
+        "platforms/lever/lever.js",
+        "automation/orchestrator.js",
+        "content.js"
+      ],
       "run_at": "document_idle",
       "exclude_matches": [
         "https://rns-forge.github.io/BioTailr-AI/*",
