@@ -45,7 +45,7 @@ class LinkedInPlatform extends BasePlatform {
       const detailText = (detailPane.innerText || '').toLowerCase();
       const hasExternalNote = detailText.includes('responses managed off linkedin') ||
                               detailText.includes('application will be submitted on company website') ||
-                              Boolean(detailPane.querySelector('[data-test-icon="link-external-small"], [data-test-icon="arrow-diagonal"], svg[type="external-link"]'));
+                              Boolean(detailPane.querySelector('[data-test-icon="link-external-small"], [data-test-icon="arrow-diagonal"], svg[type="external-link"], [data-svg-class-name*="offsite"], [class*="offsite"]'));
 
       if (anyApply || hasExternalNote) {
         return { 
