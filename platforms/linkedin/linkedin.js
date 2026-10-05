@@ -134,19 +134,47 @@ class LinkedInPlatform extends BasePlatform {
 
     onStatus('[LinkedIn] Modal opened. Commencing automated application sequence...');
 
-    // 2. High-speed multi-step form stepper (Max 15 iterations)
+    const AgentClass = window.BioTailrApplyAgent || (typeof BioTailrApplyAgent !== 'undefined' ? BioTailrApplyAgent : null);
+    const agent = AgentClass ? new AgentClass() : null;
+
+    // 2. High-speed multi-step form stepper (Max 25 iterations for long paginated applications)
     let stepCount = 0;
-    const maxSteps = 15;
+    const maxSteps = 25;
 
     while (stepCount < maxSteps) {
       stepCount++;
-      await this.sleep(20);
+      await this.sleep(220);
       onStatus(`[LinkedIn] Step ${stepCount}: Processing application questions & fields...`);
+      if (window.bioTailrScreenHUD) {
+        window.bioTailrScreenHUD.log(`Processing application step #${stepCount}...`, 'AGENT');
+        window.bioTailrScreenHUD.setStatus(`Step ${stepCount}`, 'RUNNING');
+      }
 
-      // Enforce user constraints: strictly 1 College & 1 School in Education, max 3 in Work Experience
+      // A. AI Agent Screen Perception & Reasoning
+      if (agent) {
+        try {
+          const screenState = agent.perceiveScreen(modal, { platform: 'LinkedIn' });
+          if (screenState && screenState.elements.length > 0) {
+            onStatus(`[LinkedIn Agent] Observing screen: ${screenState.elements.length} fields detected.`);
+            if (window.bioTailrScreenHUD) window.bioTailrScreenHUD.log(`Observing screen: ${screenState.elements.length} form fields detected`, 'AGENT');
+            const plan = await agent.reasonActions(screenState, context);
+            if (plan) {
+              if (plan.thought) {
+                onStatus(`[LinkedIn Agent] Plan: ${plan.thought.slice(0, 70)}...`);
+                if (window.bioTailrScreenHUD) window.bioTailrScreenHUD.log(`Decision: ${plan.thought.slice(0, 65)}...`, 'PLAN');
+              }
+              await agent.executePlan(modal, plan, onStatus);
+            }
+          }
+        } catch(agentErr) {
+          console.warn('[LinkedIn Agent] Step warning:', agentErr);
+        }
+      }
+
+      // B. Enforce user constraints: strictly 1 College & 1 School in Education, max 3 in Work Experience
       await this.pruneEducationAndExperience(modal, onStatus);
 
-      // Fill visible fields on this step
+      // C. Supplementary fill to guarantee 100% coverage
       const filled = this.fillVisibleFields(modal, context, resumeBlob);
       if (filled > 0) {
         onStatus(`[LinkedIn] Form values populated: ${filled} fields updated.`);
@@ -156,6 +184,7 @@ class LinkedInPlatform extends BasePlatform {
       const errorMsg = modal.querySelector('.artdeco-inline-feedback--error, [data-test-form-element-error-messages]');
       if (errorMsg && errorMsg.innerText.trim()) {
         onStatus(`[LinkedIn] Note: Prompt encountered: "${errorMsg.innerText.trim().slice(0, 50)}..."`);
+        if (window.bioTailrScreenHUD) window.bioTailrScreenHUD.log(`Prompt: ${errorMsg.innerText.trim().slice(0, 50)}...`, 'WARN');
       }
 
       // Check primary action buttons in modal footer (ONLY VISIBLE ONES)
@@ -164,6 +193,10 @@ class LinkedInPlatform extends BasePlatform {
 
       if (submitBtn) {
         onStatus('[LinkedIn] Final Review step reached. Scrolling content into view & submitting application...');
+        if (window.bioTailrScreenHUD) {
+          window.bioTailrScreenHUD.log('Final Review reached. Scrolling & Submitting...', 'PLAN');
+          window.bioTailrScreenHUD.setStatus('Submitting', 'RUNNING');
+        }
         try {
           const scrollContainers = [
             modal.querySelector('.jobs-easy-apply-modal__content'),
@@ -176,23 +209,35 @@ class LinkedInPlatform extends BasePlatform {
         try {
           submitBtn.scrollIntoView({ behavior: 'instant', block: 'center' });
         } catch(e) {}
-        await this.sleep(150);
+        await this.sleep(200);
+        try { submitBtn.click(); } catch(e) {}
         this.simulateClick(submitBtn);
-        await this.sleep(900);
+        await this.sleep(1000);
 
-        // Dismiss confirmation modal if present
-        const dismissBtn = await this.waitForElement('.artdeco-modal__dismiss, [data-test-modal-close-btn], .modal-close-btn, button[aria-label="Dismiss"], button[data-control-name="overlay.close_conversation_window"], button[aria-label="Done"]', 2000, 80);
-        if (dismissBtn) {
-          try { this.simulateClick(dismissBtn); } catch(e) {}
+        // Dismiss confirmation modal or upsell if present
+        await this.sleep(400);
+        for (let d = 0; d < 3; d++) {
+          const dismissBtn = document.querySelector('.artdeco-modal__dismiss, [data-test-modal-close-btn], .modal-close-btn, button[aria-label="Dismiss"], button[data-control-name="overlay.close_conversation_window"], button[aria-label="Done"]')
+            || Array.from(document.querySelectorAll('button')).find(b => b.offsetWidth > 0 && /^(not now|dismiss|close|done)$/i.test(b.innerText.trim()));
+          if (dismissBtn) {
+            try { dismissBtn.click(); } catch(e) {}
+            this.simulateClick(dismissBtn);
+            await this.sleep(300);
+          }
         }
         onStatus('[LinkedIn] Application successfully submitted via Easy Apply.');
+        if (window.bioTailrScreenHUD) {
+          window.bioTailrScreenHUD.log('Application SUBMITTED successfully!', 'PLAN');
+          window.bioTailrScreenHUD.setStatus('Submitted', 'READY');
+        }
 
         // Auto-navigate to next Easy Apply job in search results and continue continuous apply
-        await this.sleep(600);
+        await this.sleep(800);
         const nextFound = this.navigateToNextJob(onStatus);
         if (nextFound) {
           onStatus('[LinkedIn] Transitioning to next job. Stand by for auto-apply on next listing...');
-          await this.sleep(1200);
+          if (window.bioTailrScreenHUD) window.bioTailrScreenHUD.log('Transitioning to next job in feed...', 'AGENT');
+          await this.sleep(1500);
           return await this.executeFastApply(context, resumeBlob, onStatus);
         }
 
@@ -202,8 +247,9 @@ class LinkedInPlatform extends BasePlatform {
       const saveBtn = this.findButtonByText(modal, [/^save$/i]);
       if (saveBtn) {
         onStatus('[LinkedIn] Saving section details...');
+        try { saveBtn.click(); } catch(e) {}
         this.simulateClick(saveBtn);
-        await this.sleep(180);
+        await this.sleep(300);
         continue;
       }
 
@@ -212,8 +258,9 @@ class LinkedInPlatform extends BasePlatform {
 
       if (reviewBtn) {
         onStatus('[LinkedIn] Review step reached. Advancing to final submission...');
+        try { reviewBtn.click(); } catch(e) {}
         this.simulateClick(reviewBtn);
-        await this.sleep(180);
+        await this.sleep(300);
         continue;
       }
 
@@ -221,8 +268,9 @@ class LinkedInPlatform extends BasePlatform {
         || (this.isElementVisible(modal.querySelector('button[aria-label="Continue to next step"], button[data-easy-apply-next-button]')) ? modal.querySelector('button[aria-label="Continue to next step"], button[data-easy-apply-next-button]') : null);
 
       if (nextBtn) {
+        try { nextBtn.click(); } catch(e) {}
         this.simulateClick(nextBtn);
-        await this.sleep(180);
+        await this.sleep(300);
         continue;
       }
 

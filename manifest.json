@@ -33,12 +33,14 @@
       "matches": ["http://*/*", "https://*/*"],
       "js": [
         "automation/form-solver.js",
+        "automation/ai-agent.js",
         "platforms/base-platform.js",
         "platforms/linkedin/linkedin.js",
         "platforms/indeed/indeed.js",
         "platforms/greenhouse/greenhouse.js",
         "platforms/lever/lever.js",
         "automation/orchestrator.js",
+        "automation/screen-hud.js",
         "content.js"
       ],
       "run_at": "document_idle",
