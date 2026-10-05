@@ -1750,7 +1750,7 @@ function collectContextFromForm() {
       securityClearance: 'No'
     },
     experience: {
-      totalYears: getVal('ctx-total-years', '4'),
+      totalYears: getVal('ctx-total-years', '2'),
       noticePeriodDays: getVal('ctx-notice-period', '15'),
       currentTitle: getVal('ctx-current-title', 'Software Development Engineer'),
       currentCompany: getVal('ctx-current-company', 'Axodian'),
@@ -1774,7 +1774,7 @@ function collectContextFromForm() {
     customAnswers: {
       whyWorkHere: getVal('ctx-why-work-here', 'I am passionate about building scalable, high-throughput software and AI-driven platforms. My background in microservices, full-stack engineering, and high-compliance systems directly aligns with your technical mission.'),
       strengths: getVal('ctx-strengths', 'Full-stack software engineering, RESTful microservices, AI & LLM application architecture, automated test coverage, and strict performance optimization.'),
-      summary: 'Results-oriented Software Development Engineer with 4+ years of expertise in distributed microservices, full-stack architecture, and AI-enabled software systems.'
+      summary: 'Results-oriented Software Development Engineer with 2+ years of expertise in distributed microservices, full-stack architecture, and AI-enabled software systems.'
     }
   };
 }

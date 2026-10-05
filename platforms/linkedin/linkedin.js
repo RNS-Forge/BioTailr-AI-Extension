@@ -25,12 +25,13 @@ class LinkedInPlatform extends BasePlatform {
     try {
       el.scrollIntoView({ behavior: 'instant', block: 'center' });
     } catch(e) {}
+    try { el.click(); } catch(e) {}
     const opts = { bubbles: true, cancelable: true, view: window };
     el.dispatchEvent(new MouseEvent('pointerdown', opts));
     el.dispatchEvent(new MouseEvent('mousedown', opts));
     el.dispatchEvent(new MouseEvent('pointerup', opts));
     el.dispatchEvent(new MouseEvent('mouseup', opts));
-    el.click();
+    try { el.click(); } catch(e) {}
   }
 
   /**
@@ -117,6 +118,9 @@ class LinkedInPlatform extends BasePlatform {
     this.simulateClick(check.button);
 
     const modal = await this.waitForElement([
+      'dialog[open]',
+      'dialog',
+      '[role="dialog"]',
       '.jobs-easy-apply-modal',
       '[data-test-modal-id="easy-apply-modal"]',
       '.artdeco-modal[role="dialog"]',
@@ -136,8 +140,11 @@ class LinkedInPlatform extends BasePlatform {
 
     while (stepCount < maxSteps) {
       stepCount++;
-      await this.sleep(40);
+      await this.sleep(20);
       onStatus(`[LinkedIn] Step ${stepCount}: Processing application questions & fields...`);
+
+      // Enforce user constraints: strictly 1 College & 1 School in Education, max 3 in Work Experience
+      await this.pruneEducationAndExperience(modal, onStatus);
 
       // Fill visible fields on this step
       const filled = this.fillVisibleFields(modal, context, resumeBlob);
@@ -156,11 +163,48 @@ class LinkedInPlatform extends BasePlatform {
         || (this.isElementVisible(modal.querySelector('button[aria-label="Submit application"]')) ? modal.querySelector('button[aria-label="Submit application"]') : null);
 
       if (submitBtn) {
-        onStatus('[LinkedIn] Final Review step reached. Submitting application...');
+        onStatus('[LinkedIn] Final Review step reached. Scrolling content into view & submitting application...');
+        try {
+          const scrollContainers = [
+            modal.querySelector('.jobs-easy-apply-modal__content'),
+            modal.querySelector('.artdeco-modal__content'),
+            modal.querySelector('div[class*="content"]'),
+            modal
+          ];
+          scrollContainers.forEach(sc => { if (sc) sc.scrollTop = sc.scrollHeight; });
+        } catch(e) {}
+        try {
+          submitBtn.scrollIntoView({ behavior: 'instant', block: 'center' });
+        } catch(e) {}
+        await this.sleep(150);
         this.simulateClick(submitBtn);
-        await this.waitForElement('.artdeco-modal__dismiss, [data-test-modal-close-btn], .modal-close-btn', 600, 50);
+        await this.sleep(900);
+
+        // Dismiss confirmation modal if present
+        const dismissBtn = await this.waitForElement('.artdeco-modal__dismiss, [data-test-modal-close-btn], .modal-close-btn, button[aria-label="Dismiss"], button[data-control-name="overlay.close_conversation_window"], button[aria-label="Done"]', 2000, 80);
+        if (dismissBtn) {
+          try { this.simulateClick(dismissBtn); } catch(e) {}
+        }
         onStatus('[LinkedIn] Application successfully submitted via Easy Apply.');
+
+        // Auto-navigate to next Easy Apply job in search results and continue continuous apply
+        await this.sleep(600);
+        const nextFound = this.navigateToNextJob(onStatus);
+        if (nextFound) {
+          onStatus('[LinkedIn] Transitioning to next job. Stand by for auto-apply on next listing...');
+          await this.sleep(1200);
+          return await this.executeFastApply(context, resumeBlob, onStatus);
+        }
+
         return { success: true, status: 'submitted', steps: stepCount };
+      }
+
+      const saveBtn = this.findButtonByText(modal, [/^save$/i]);
+      if (saveBtn) {
+        onStatus('[LinkedIn] Saving section details...');
+        this.simulateClick(saveBtn);
+        await this.sleep(180);
+        continue;
       }
 
       const reviewBtn = this.findButtonByText(modal, [/review your application/i, /^review$/i])
@@ -169,7 +213,7 @@ class LinkedInPlatform extends BasePlatform {
       if (reviewBtn) {
         onStatus('[LinkedIn] Review step reached. Advancing to final submission...');
         this.simulateClick(reviewBtn);
-        await this.sleep(80);
+        await this.sleep(180);
         continue;
       }
 
@@ -178,7 +222,7 @@ class LinkedInPlatform extends BasePlatform {
 
       if (nextBtn) {
         this.simulateClick(nextBtn);
-        await this.sleep(80);
+        await this.sleep(180);
         continue;
       }
 
@@ -194,6 +238,119 @@ class LinkedInPlatform extends BasePlatform {
     }
 
     return { success: false, reason: 'Exceeded maximum step threshold' };
+  }
+
+  /**
+   * Enforces user constraints:
+   * 1. Education: strictly 1 College and 1 School (removes extra or duplicate entries)
+   * 2. Work Experience: strictly max 3 experiences (removes any entry beyond 3)
+   */
+  async pruneEducationAndExperience(modal, onStatus = () => {}) {
+    if (!modal) return;
+    const modalText = (modal.innerText || '').toLowerCase();
+
+    // 1. EDUCATION: Keep strictly 1 College and 1 School
+    if (modalText.includes('education') && !modalText.includes('work experience')) {
+      const removeButtons = Array.from(modal.querySelectorAll('button, a[role="button"]')).filter(b => {
+        const txt = (b.innerText || b.getAttribute('aria-label') || '').toLowerCase().trim();
+        return txt === 'remove' || txt.includes('remove education') || txt.includes('delete');
+      });
+
+      if (removeButtons.length > 2) {
+        onStatus(`[LinkedIn] Pruning Education entries (keeping strictly 1 College and 1 School)...`);
+        let keptCollege = false;
+        let keptSchool = false;
+
+        for (const btn of removeButtons) {
+          const card = btn.closest('li, .jobs-easy-apply-form-section__grouping, .fb-dash-form-element, div[class*="entry"], div[class*="group"]') || btn.parentElement?.parentElement;
+          const cardText = (card ? card.innerText : '').toLowerCase();
+
+          const isSchool = /school|metric|matriculation|secondary|12th|10th|high\s*school/i.test(cardText);
+          const isCollege = !isSchool && (/college|university|institute|institution|btech|b\.tech|bachelor|degree|engineering/i.test(cardText) || cardText.includes('sns') || cardText.includes('anna'));
+
+          if (isCollege && !keptCollege) {
+            keptCollege = true;
+            continue;
+          }
+          if (isSchool && !keptSchool) {
+            keptSchool = true;
+            continue;
+          }
+
+          // Duplicate college or duplicate school or extra entry: remove it
+          try {
+            onStatus(`[LinkedIn] Removing extra education entry: "${cardText.slice(0, 35).replace(/\n/g, ' ')}..."`);
+            this.simulateClick(btn);
+            await this.sleep(300);
+
+            // Confirm removal dialog if prompted
+            const confirmBtn = document.querySelector('.artdeco-modal__confirm-dialog-btn, button[data-control-name="confirm_delete"], button.artdeco-button--primary');
+            if (confirmBtn && confirmBtn !== btn && this.isElementVisible(confirmBtn)) {
+              this.simulateClick(confirmBtn);
+              await this.sleep(300);
+            }
+          } catch(e) {}
+        }
+      }
+    }
+
+    // 2. WORK EXPERIENCE: Keep strictly max 3 experiences
+    if (modalText.includes('work experience')) {
+      const expRemoveButtons = Array.from(modal.querySelectorAll('button, a[role="button"]')).filter(b => {
+        const txt = (b.innerText || b.getAttribute('aria-label') || '').toLowerCase().trim();
+        return txt === 'remove' || txt.includes('remove experience') || txt.includes('delete');
+      });
+
+      if (expRemoveButtons.length > 3) {
+        onStatus(`[LinkedIn] Pruning Work Experience entries (keeping max 3 experiences)...`);
+        for (let i = 3; i < expRemoveButtons.length; i++) {
+          try {
+            const btn = expRemoveButtons[i];
+            onStatus(`[LinkedIn] Removing extra experience entry #${i + 1}...`);
+            this.simulateClick(btn);
+            await this.sleep(300);
+
+            const confirmBtn = document.querySelector('.artdeco-modal__confirm-dialog-btn, button[data-control-name="confirm_delete"], button.artdeco-button--primary');
+            if (confirmBtn && confirmBtn !== btn && this.isElementVisible(confirmBtn)) {
+              this.simulateClick(confirmBtn);
+              await this.sleep(300);
+            }
+          } catch(e) {}
+        }
+      }
+    }
+  }
+
+  /**
+   * Automatically locate and transition to the next unapplied Easy Apply job in search list
+   */
+  navigateToNextJob(onStatus = () => {}) {
+    onStatus('[LinkedIn] Locating next available Easy Apply job card in search feed...');
+    const cards = Array.from(document.querySelectorAll([
+      '.jobs-search-results-list__list-item',
+      '.job-card-container',
+      '[data-occludable-job-id]',
+      'li.jobs-search-results__list-item'
+    ].join(', ')));
+
+    for (const card of cards) {
+      const text = (card.innerText || '').toLowerCase();
+      const isApplied = text.includes('applied') || text.includes('application submitted');
+      const isEasyApply = text.includes('easy apply');
+      const isActive = card.classList.contains('jobs-search-results-list__list-item--active') || card.classList.contains('selected') || Boolean(card.querySelector('.job-card-container--active'));
+
+      if (isEasyApply && !isApplied && !isActive) {
+        const link = card.querySelector('a.job-card-container__link, a[href*="/jobs/view/"], a');
+        if (link) {
+          onStatus(`[LinkedIn] Next job found: "${link.innerText.trim().slice(0, 45)}". Transitioning...`);
+          try { link.scrollIntoView({ behavior: 'instant', block: 'center' }); } catch(e) {}
+          this.simulateClick(link);
+          return true;
+        }
+      }
+    }
+    onStatus('[LinkedIn] Batch finished or no more unapplied Easy Apply jobs found in search list.');
+    return false;
   }
 }
 
