@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BioTailr AI - Auto Apply Orchestrator
  * Detects the active job platform and executes the fast application pipeline.
  */

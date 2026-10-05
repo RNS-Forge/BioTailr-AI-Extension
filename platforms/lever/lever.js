@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BioTailr AI - Lever Platform Adapter
  * Fast application filler for Lever job postings.
  */

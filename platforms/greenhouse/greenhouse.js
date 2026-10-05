@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BioTailr AI - Greenhouse Platform Adapter
  * Fast application filler for Greenhouse job boards.
  */

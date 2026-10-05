@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BioTailr AI - Fast Form Solver
  * Matches DOM form fields against candidate context and dispatches native events instantly.
  */

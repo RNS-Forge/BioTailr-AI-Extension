@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BioTailr AI - Standalone Test Mock for Chrome Extension APIs
  * Allows full in-browser testing of Extension Popup, Background Port, and Content Script runners.
  */

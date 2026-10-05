@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BioTailr AI - Base Platform Adapter
  * Abstract foundation for high-speed automated job application runners.
  */

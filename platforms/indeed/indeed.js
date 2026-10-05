@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BioTailr AI - Indeed Platform Adapter
  * High-speed Indeed Apply form filler & runner.
  */

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BioTailr AI - Candidate Context Manager
  * Persistent storage and schema for candidate profile used in Fast Auto Apply.
  */
