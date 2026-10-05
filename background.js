@@ -46,6 +46,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === 'JOB_SELECTION_CHANGED') {
+    if (sidePanelPort) {
+      try { sidePanelPort.postMessage(message); } catch (e) { sidePanelPort = null; }
+    }
+    chrome.runtime.sendMessage(message).catch(() => {});
+    return true;
+  }
+
   if (message.action === 'RESUME_READY' || message.action === 'EXT_JOB_ERROR') {
     // Try via port first (reliable when panel is open)
     if (sidePanelPort) {
@@ -90,7 +98,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab && tab.url) {
+  if ((changeInfo.status === 'complete' || changeInfo.url) && tab && tab.url) {
     if (tab.url.includes('extjob=')) return;
     if (tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) return;
 

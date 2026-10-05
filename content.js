@@ -140,6 +140,14 @@ function checkIfJobPage() {
       if (!company && (document.title || '').includes(' at ')) {
         company = document.title.split(' at ')[1].split('|')[0].trim();
       }
+      if (typeof AutoApplyOrchestrator !== 'undefined' || window.AutoApplyOrchestrator) {
+        try {
+          const orch = new (window.AutoApplyOrchestrator || AutoApplyOrchestrator)();
+          const info = orch.extractJobInfo(document);
+          if (info.jobTitle) title = info.jobTitle;
+          if (info.companyName) company = info.companyName;
+        } catch(e) {}
+      }
       return {
         isJobPage: true,
         source: 'LinkedIn Job Posting',
@@ -740,4 +748,156 @@ function getFirstText(selectors) {
 
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+
+/* =========================================================
+   Real-Time Active Job Selection Watcher (SPA & In-Page Clicks)
+   ========================================================= */
+let lastNotifiedJobKey = '';
+
+function setupRealtimeJobWatcher() {
+  // 1. Click delegation on job cards in search/collections lists
+  document.addEventListener('click', (e) => {
+    const jobItem = e.target.closest([
+      '.jobs-search-results-list__list-item',
+      '.jobs-search-results__list-item',
+      '.job-card-container',
+      'li[data-occludable-job-id]',
+      'li.jobs-search-results__list-item',
+      'div[data-job-id]',
+      'a[href*="/jobs/view/"]',
+      'a[href*="currentJobId="]',
+      '.scaffold-layout__list-item',
+      '.jobsearch-ResultsList > li',
+      '[data-jk]'
+    ].join(', '));
+
+    if (jobItem) {
+      // Instantly parse from the clicked item so previous job title is cleared with 0ms delay!
+      const cardTitleEl = jobItem.querySelector('.job-card-list__title, [class*="job-card-list__title"], strong, a[href*="/jobs/view/"], [class*="job-title"]');
+      const cardCompEl = jobItem.querySelector('.job-card-container__primary-description, [class*="company-name"], [class*="subtitle"], [class*="primary-description"]');
+      const cardLocEl = jobItem.querySelector('.job-card-container__metadata-item, [class*="metadata-item"]');
+      const cardText = (jobItem.innerText || '').toLowerCase();
+      const hasEasyApply = Boolean(
+        cardText.includes('easy apply') ||
+        jobItem.querySelector('svg[type="linkedin-bug"], [data-test-icon="linkedin-bug"]')
+      );
+
+      const title = cardTitleEl ? cardTitleEl.innerText.trim() : '';
+      const company = cardCompEl ? cardCompEl.innerText.trim() : '';
+      const loc = cardLocEl ? cardLocEl.innerText.trim() : '';
+
+      if (title) {
+        lastNotifiedJobKey = `${window.location.href}::${title}::${company}::${hasEasyApply}`;
+        chrome.runtime.sendMessage({
+          action: 'JOB_SELECTION_CHANGED',
+          url: window.location.href,
+          isJobPage: true,
+          title: title,
+          company: company,
+          location: loc,
+          platformStatus: {
+            detected: true,
+            platformName: window.location.hostname.includes('linkedin') ? 'LinkedIn' : 'Indeed',
+            canApply: hasEasyApply,
+            jobTitle: title,
+            companyName: company,
+            location: loc,
+            reason: hasEasyApply ? '' : 'External Application (Directs off LinkedIn to company portal). Select an "Easy Apply" job to use 1-Click Fast Apply.'
+          }
+        }).catch(() => {});
+      }
+
+      // Follow-up after detail pane renders
+      setTimeout(() => notifyJobSelectionChange(true), 250);
+      setTimeout(() => notifyJobSelectionChange(true), 650);
+      setTimeout(() => notifyJobSelectionChange(true), 1200);
+    }
+  }, true);
+
+  // 2. URL Change Watcher (SPA pushState/replaceState)
+  let currentHref = window.location.href;
+  const checkUrl = () => {
+    if (window.location.href !== currentHref) {
+      currentHref = window.location.href;
+      setTimeout(() => notifyJobSelectionChange(true), 200);
+      setTimeout(() => notifyJobSelectionChange(true), 700);
+    }
+  };
+
+  const origPushState = history.pushState;
+  if (origPushState) {
+    history.pushState = function(...args) {
+      const res = origPushState.apply(this, args);
+      checkUrl();
+      return res;
+    };
+  }
+
+  const origReplaceState = history.replaceState;
+  if (origReplaceState) {
+    history.replaceState = function(...args) {
+      const res = origReplaceState.apply(this, args);
+      checkUrl();
+      return res;
+    };
+  }
+
+  window.addEventListener('popstate', checkUrl);
+  window.addEventListener('hashchange', checkUrl);
+
+  // 3. Detail Pane DOM Mutation Observer (detects asynchronous title/company/button changes)
+  let domCheckTimeout = null;
+  const observer = new MutationObserver(() => {
+    if (domCheckTimeout) clearTimeout(domCheckTimeout);
+    domCheckTimeout = setTimeout(() => {
+      notifyJobSelectionChange(false);
+    }, 350);
+  });
+
+  const detailTarget = document.querySelector([
+    '.jobs-search__job-details',
+    '.jobs-details__main-content',
+    '.job-view-layout',
+    '.scaffold-layout__detail',
+    'main'
+  ].join(', ')) || document.body;
+
+  observer.observe(detailTarget, { childList: true, subtree: true, characterData: true });
+}
+
+function notifyJobSelectionChange(force = false) {
+  try {
+    const OrchestratorClass = window.AutoApplyOrchestrator || (typeof AutoApplyOrchestrator !== 'undefined' ? AutoApplyOrchestrator : null);
+    if (!OrchestratorClass) return;
+
+    const orchestrator = new OrchestratorClass();
+    const status = orchestrator.checkPlatformStatus(document);
+    const check = checkIfJobPage();
+
+    const title = status.jobTitle || check.titlePreview || '';
+    const company = status.companyName || check.companyPreview || '';
+    const jobKey = `${window.location.href}::${title}::${company}::${status.canApply}`;
+
+    if (!force && jobKey === lastNotifiedJobKey) return;
+    lastNotifiedJobKey = jobKey;
+
+    chrome.runtime.sendMessage({
+      action: 'JOB_SELECTION_CHANGED',
+      url: window.location.href,
+      isJobPage: check.isJobPage,
+      title: title,
+      company: company,
+      location: status.location || '',
+      platformStatus: status
+    }).catch(() => {});
+  } catch (err) {}
+}
+
+// Auto-boot watcher
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupRealtimeJobWatcher);
+} else {
+  setupRealtimeJobWatcher();
 }

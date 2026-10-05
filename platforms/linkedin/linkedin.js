@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BioTailr AI - LinkedIn Easy Apply Platform Adapter
  * High-speed multi-step modal form filler and applicant submission engine.
  */
@@ -17,32 +17,87 @@ class LinkedInPlatform extends BasePlatform {
     );
   }
 
+  /**
+   * Helper to dispatch full synthetic mouse/pointer event sequence for React 18 reliability
+   */
+  simulateClick(el) {
+    if (!el) return;
+    try {
+      el.scrollIntoView({ behavior: 'instant', block: 'center' });
+    } catch(e) {}
+    const opts = { bubbles: true, cancelable: true, view: window };
+    el.dispatchEvent(new MouseEvent('pointerdown', opts));
+    el.dispatchEvent(new MouseEvent('mousedown', opts));
+    el.dispatchEvent(new MouseEvent('pointerup', opts));
+    el.dispatchEvent(new MouseEvent('mouseup', opts));
+    el.click();
+  }
+
+  /**
+   * Identifies if active job supports LinkedIn 1-Click Easy Apply
+   */
   canApply(doc = document) {
     const applyBtn = this.findEasyApplyButton(doc);
     if (!applyBtn) {
-      const anyApply = doc.querySelector('.jobs-apply-button, .jobs-s-apply button');
-      if (anyApply) {
-        return { canApply: false, reason: 'External Application (Directs to company site, not LinkedIn Easy Apply)' };
+      // Check if external apply is present in the active job detail pane
+      const detailPane = this.getJobDetailPane(doc);
+      const anyApply = detailPane.querySelector('.jobs-apply-button, .jobs-s-apply button, a.jobs-apply-button, button[class*="apply"]');
+      const detailText = (detailPane.innerText || '').toLowerCase();
+      const hasExternalNote = detailText.includes('responses managed off linkedin') ||
+                              detailText.includes('application will be submitted on company website') ||
+                              Boolean(detailPane.querySelector('[data-test-icon="link-external-small"], [data-test-icon="arrow-diagonal"], svg[type="external-link"]'));
+
+      if (anyApply || hasExternalNote) {
+        return { 
+          canApply: false, 
+          isExternal: true,
+          reason: 'External Application (Directs off LinkedIn to company portal). Select an "Easy Apply" job in LinkedIn to use 1-Click Fast Apply.' 
+        };
       }
       return { canApply: false, reason: 'Apply button not found on this job card' };
     }
     return { canApply: true, button: applyBtn };
   }
 
+  getJobDetailPane(doc = document) {
+    return doc.querySelector([
+      '.jobs-search__job-details',
+      '.jobs-details__main-content',
+      '.job-view-layout',
+      '.scaffold-layout__detail',
+      '.job-details-jobs-unified-top-card',
+      '#job-details'
+    ].join(', ')) || doc;
+  }
+
   findEasyApplyButton(doc = document) {
-    const candidates = Array.from(doc.querySelectorAll([
+    // Search the active detail pane first to avoid false-matching other items in the job search list
+    const detailPane = this.getJobDetailPane(doc);
+
+    const candidates = Array.from(detailPane.querySelectorAll([
       'button.jobs-apply-button',
       '.jobs-apply-button--top-card button',
       'button[aria-label*="Easy Apply"]',
+      'button[aria-label*="easy apply"]',
       'button[data-job-id]',
       '.jobs-s-apply button',
       '.jobs-details__main-content button.artdeco-button--primary'
-    ].join(', ')));
+    ].join(', '))).filter(btn => {
+      // Strict guard: NEVER select an apply button from the background search results list!
+      return !btn.closest('.jobs-search-results-list, .scaffold-layout__list, .jobs-search-results');
+    });
 
     for (const btn of candidates) {
       if (!this.isElementVisible(btn)) continue;
       const text = (btn.innerText || btn.getAttribute('aria-label') || '').toLowerCase();
-      if (text.includes('easy apply') || btn.getAttribute('data-is-easy-apply') === 'true') {
+      const hasEasyApplyAttr = btn.getAttribute('data-is-easy-apply') === 'true';
+      const hasLinkedInIcon = Boolean(btn.querySelector('svg[type="linkedin-bug"], [data-test-icon="linkedin-bug"]'));
+
+      // Must be Easy Apply, not an external link ("Apply" with diagonal arrow)
+      const isExternal = Boolean(btn.querySelector('[data-test-icon="link-external-small"], [data-test-icon="arrow-diagonal"]')) ||
+                         (text === 'apply' && !text.includes('easy'));
+
+      if (!isExternal && (text.includes('easy apply') || hasEasyApplyAttr || (text.includes('apply') && hasLinkedInIcon))) {
         return btn;
       }
     }
@@ -50,7 +105,7 @@ class LinkedInPlatform extends BasePlatform {
   }
 
   async executeFastApply(context, resumeBlob, onStatus = () => {}) {
-    onStatus('⚡ [LinkedIn] Checking for Easy Apply button...');
+    onStatus('⚡ [LinkedIn] Checking for Easy Apply button on active job...');
     const check = this.canApply(document);
     if (!check.canApply) {
       onStatus(`⚠️ [LinkedIn] ${check.reason}`);
@@ -59,7 +114,7 @@ class LinkedInPlatform extends BasePlatform {
 
     // 1. Launch Easy Apply Modal
     onStatus('⚡ [LinkedIn] Launching Easy Apply modal...');
-    check.button.click();
+    this.simulateClick(check.button);
 
     const modal = await this.waitForElement([
       '.jobs-easy-apply-modal',
@@ -102,7 +157,7 @@ class LinkedInPlatform extends BasePlatform {
 
       if (submitBtn) {
         onStatus('⚡ [LinkedIn] Final Review reached! Submitting application...');
-        submitBtn.click();
+        this.simulateClick(submitBtn);
         await this.waitForElement('.artdeco-modal__dismiss, [data-test-modal-close-btn], .modal-close-btn', 600, 50);
         onStatus('🎉 [LinkedIn] Application successfully submitted via Easy Apply!');
         return { success: true, status: 'submitted', steps: stepCount };
@@ -113,7 +168,7 @@ class LinkedInPlatform extends BasePlatform {
 
       if (reviewBtn) {
         onStatus('⚡ [LinkedIn] Review step reached...');
-        reviewBtn.click();
+        this.simulateClick(reviewBtn);
         await this.sleep(80);
         continue;
       }
@@ -122,7 +177,7 @@ class LinkedInPlatform extends BasePlatform {
         || (this.isElementVisible(modal.querySelector('button[aria-label="Continue to next step"], button[data-easy-apply-next-button]')) ? modal.querySelector('button[aria-label="Continue to next step"], button[data-easy-apply-next-button]') : null);
 
       if (nextBtn) {
-        nextBtn.click();
+        this.simulateClick(nextBtn);
         await this.sleep(80);
         continue;
       }

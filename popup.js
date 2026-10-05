@@ -144,8 +144,15 @@ function onBackgroundMessage(message) {
     handleResumeError(message);
     return;
   }
+  if (message.action === 'JOB_SELECTION_CHANGED') {
+    handleJobSelectionChanged(message);
+    return;
+  }
   if (message.action === 'TAB_CHANGED' || message.action === 'TAB_UPDATED') {
     handleActiveTabSwitch(message.tab);
+    checkIfCurrentTabIsJobPage().catch(() => {});
+    refreshAutoApplyPageStatus().catch(() => {});
+    return;
   }
 }
 
@@ -206,9 +213,8 @@ async function handleActiveTabSwitch(tab) {
   const urlAnalysis = analyzeUrlForJob(tab.url);
   state.activeJobPageStatus = urlAnalysis;
 
-  // 2. Check if this active tab URL or tab ID matches any existing job in state.jobs
+  // 2. Check if this active tab URL matches an existing job in state.jobs (Match strictly on URL / job key)
   const matchingJob = state.jobs.find(j => {
-    if (j.tabId && j.tabId === tab.id) return true;
     if (j.tabUrl && isSameJobUrl(j.tabUrl, tab.url)) return true;
     return false;
   });
@@ -226,23 +232,14 @@ async function handleActiveTabSwitch(tab) {
 
   // 3. Active tab is NOT an existing job in queue:
   if (!urlAnalysis.isJobPage) {
-    // User switched to a non-job page (e.g. LinkedIn messaging, feed, Google)
-    // Do NOT create a new job!
-    const currentJob = getActiveJob();
-    if (currentJob && currentJob.status === 'unscanned') {
-      currentJob.tabUrl = tab.url;
-      currentJob.tabId = tab.id;
-      currentJob.tabHost = getHostnameFromUrl(tab.url);
-      renderActiveJobView();
-    }
     applyJobStatusToUI(urlAnalysis);
     return;
   }
 
-  // 4. Active tab IS a new, recognized Job page (not yet in state.jobs):
+  // 4. Active tab IS a new, recognized Job page:
   const currentJob = getActiveJob();
   if (currentJob && currentJob.status === 'unscanned') {
-    // Bind current unscanned slot to this new job tab
+    // Bind current unscanned slot to this new job tab and clear previous data
     currentJob.tabUrl = tab.url;
     currentJob.tabId = tab.id;
     currentJob.tabHost = getHostnameFromUrl(tab.url);
@@ -250,11 +247,30 @@ async function handleActiveTabSwitch(tab) {
       currentJob.displayTitle = truncateTitle(urlAnalysis.titlePreview);
       currentJob.targetRole = urlAnalysis.titlePreview;
     }
+    if (urlAnalysis.companyPreview) {
+      currentJob.company = urlAnalysis.companyPreview;
+    }
     renderJobTabs();
     renderActiveJobView();
     applyJobStatusToUI(urlAnalysis);
   } else {
-    // Current slot is already completed ('ready'). User is viewing a new job tab.
+    // Current slot is already completed. Switch to unscanned or create a new slot so old title isn't shown
+    const unscanned = state.jobs.find(j => j.status === 'unscanned');
+    if (unscanned) {
+      state.activeJobId = unscanned.id;
+      unscanned.tabUrl = tab.url;
+      unscanned.tabId = tab.id;
+      unscanned.tabHost = getHostnameFromUrl(tab.url);
+      if (urlAnalysis.titlePreview) {
+        unscanned.displayTitle = truncateTitle(urlAnalysis.titlePreview);
+        unscanned.targetRole = urlAnalysis.titlePreview;
+      }
+      if (urlAnalysis.companyPreview) {
+        unscanned.company = urlAnalysis.companyPreview;
+      }
+      renderJobTabs();
+      renderActiveJobView();
+    }
     applyJobStatusToUI(urlAnalysis);
   }
 }
@@ -1552,6 +1568,22 @@ function switchFeatureView(targetViewId) {
 
 window.initExtension = initExtension;
 window.switchFeatureView = switchFeatureView;
+window.switchFeatureTab = switchFeatureView;
+
+// Global Click Delegation for feature nav tabs (replaces inline script for CSP compliance)
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.feature-nav-tab');
+  if (btn) {
+    e.preventDefault();
+    const target = btn.getAttribute('data-target');
+    if (target) switchFeatureView(target);
+  }
+});
+
+// Deep-link navigation via URL hash
+const bootHash = (window.location.hash || '').replace('#', '').toLowerCase();
+if (bootHash.includes('context')) switchFeatureView('view-context');
+else if (bootHash.includes('auto-apply') || bootHash.includes('autoapply')) switchFeatureView('view-auto-apply');
 window.initFeatureNavigation = initFeatureNavigation;
 window.initContextView = initContextView;
 window.initAutoApplyView = initAutoApplyView;
@@ -1842,7 +1874,48 @@ function initAutoApplyView() {
   }
 }
 
-async function refreshAutoApplyPageStatus() {
+
+function handleJobSelectionChanged(msg) {
+  if (!msg) return;
+  const newTitle = (msg.title || '').trim();
+  const newCompany = (msg.company || '').trim();
+  const newLoc = (msg.location || '').trim();
+  const status = msg.platformStatus;
+
+  // 1. Clear previous job details and store fresh state
+  state.activeJobPageStatus = {
+    isJobPage: msg.isJobPage !== false,
+    titlePreview: newTitle,
+    companyPreview: newCompany,
+    locationPreview: newLoc,
+    source: status?.platformName || 'Job Listing'
+  };
+
+  // 2. Update active unscanned job tab in state.jobs queue
+  const currentJob = getActiveJob();
+  if (currentJob && currentJob.status === 'unscanned') {
+    if (newTitle) {
+      currentJob.targetRole = newTitle;
+      currentJob.displayTitle = truncateTitle(newTitle);
+    }
+    if (newCompany) currentJob.company = newCompany;
+    if (newLoc) currentJob.location = newLoc;
+    if (msg.url) currentJob.tabUrl = msg.url;
+    renderJobTabs();
+  }
+
+  // 3. Clear and update Tailor Resume View
+  applyJobStatusToUI(state.activeJobPageStatus);
+
+  // 4. Clear and update Auto Apply View
+  if (status) {
+    updateAutoApplyUIFromStatus(status);
+  } else {
+    refreshAutoApplyPageStatus();
+  }
+}
+
+function updateAutoApplyUIFromStatus(res) {
   const badgeEl = document.getElementById('auto-apply-platform-badge');
   const pillEl = document.getElementById('auto-apply-eligibility-pill');
   const titleEl = document.getElementById('auto-apply-job-title');
@@ -1850,6 +1923,64 @@ async function refreshAutoApplyPageStatus() {
   const notesEl = document.getElementById('auto-apply-status-notes');
   const btnApply = document.getElementById('btn-fast-auto-apply');
   const btnText = document.getElementById('btn-fast-apply-text');
+
+  currentAutoApplyStatus = res;
+  if (!res) return;
+
+  // Clear previous values and update immediately with fresh details
+  const displayTitle = (res.jobTitle || '').trim() || (state.activeJobPageStatus?.titlePreview || '').trim() || 'Active Job Opportunity';
+  const displayCompany = (res.companyName || '').trim() || (state.activeJobPageStatus?.companyPreview || '').trim() || 'Company Not Specified';
+
+  if (titleEl) titleEl.textContent = displayTitle;
+  if (companyEl) companyEl.textContent = displayCompany;
+
+  if (res.detected) {
+    if (badgeEl) {
+      badgeEl.textContent = res.platformName;
+      badgeEl.className = 'platform-badge platform-' + res.platformName.toLowerCase();
+    }
+
+    if (res.canApply) {
+      if (pillEl) {
+        pillEl.textContent = res.platformName === 'LinkedIn' ? 'Easy Apply Ready' : 'Fast Apply Ready';
+        pillEl.className = 'apply-eligibility-pill ready';
+      }
+      if (btnApply) btnApply.disabled = false;
+      if (btnText) btnText.textContent = `FAST AUTO APPLY ON ${res.platformName.toUpperCase()}`;
+      if (notesEl) {
+        notesEl.innerHTML = '<span>100% ATS Resume ready &bull; Master profile mapped &bull; Instant sub-100ms submission</span>';
+      }
+    } else {
+      if (pillEl) {
+        pillEl.textContent = 'External Apply (Manual)';
+        pillEl.className = 'apply-eligibility-pill warning';
+      }
+      if (btnApply) btnApply.disabled = true;
+      if (btnText) btnText.textContent = 'EXTERNAL APPLICATION (NOT EASY APPLY)';
+      if (notesEl) {
+        notesEl.innerHTML = `<span>${res.reason || 'This listing directs off LinkedIn to an external company site. Select an "Easy Apply" job in LinkedIn to auto-apply.'}</span>`;
+      }
+    }
+  } else {
+    if (badgeEl) {
+      badgeEl.textContent = 'Standby';
+      badgeEl.className = 'platform-badge';
+    }
+    if (pillEl) {
+      pillEl.textContent = 'Not Supported';
+      pillEl.className = 'apply-eligibility-pill';
+    }
+    if (btnApply) btnApply.disabled = true;
+    if (btnText) btnText.textContent = 'FAST AUTO APPLY (1-CLICK)';
+    if (notesEl) {
+      notesEl.innerHTML = '<span>Navigate to a job listing on LinkedIn (Easy Apply), Indeed, Greenhouse, or Lever.</span>';
+    }
+  }
+}
+
+async function refreshAutoApplyPageStatus() {
+  const titleEl = document.getElementById('auto-apply-job-title');
+  const companyEl = document.getElementById('auto-apply-company-name');
 
   if (!state.currentTab || !state.currentTab.id) {
     try { await detectActiveTab(); } catch(e) {}
@@ -1870,57 +2001,27 @@ async function refreshAutoApplyPageStatus() {
 
   try {
     const res = await chrome.tabs.sendMessage(state.currentTab.id, { action: 'CHECK_AUTO_APPLY_STATUS' });
-    currentAutoApplyStatus = res;
-
-    if (res && res.detected) {
-      if (badgeEl) {
-        badgeEl.textContent = res.platformName;
-        badgeEl.className = 'platform-badge platform-' + res.platformName.toLowerCase();
-      }
-
-      if (res.jobTitle && titleEl) titleEl.textContent = res.jobTitle;
-      if (res.companyName && companyEl) companyEl.textContent = res.companyName;
-
-      if (res.canApply) {
-        if (pillEl) {
-          pillEl.textContent = res.platformName === 'LinkedIn' ? 'Easy Apply Ready' : 'Fast Apply Ready';
-          pillEl.className = 'apply-eligibility-pill ready';
-        }
-        if (btnApply) btnApply.disabled = false;
-        if (btnText) btnText.textContent = `FAST AUTO APPLY ON ${res.platformName.toUpperCase()}`;
-        if (notesEl) {
-          notesEl.innerHTML = '<span>100% ATS Resume ready &bull; Master profile mapped &bull; Instant sub-100ms submission</span>';
-        }
-      } else {
-        if (pillEl) {
-          pillEl.textContent = 'Manual / External';
-          pillEl.className = 'apply-eligibility-pill warning';
-        }
-        if (btnApply) btnApply.disabled = true;
-        if (btnText) btnText.textContent = 'FAST APPLY UNAVAILABLE';
-        if (notesEl) {
-          notesEl.innerHTML = `<span>${res.reason || 'This listing does not support 1-click in-page application.'}</span>`;
-        }
-      }
+    if (res && res.success !== false) {
+      updateAutoApplyUIFromStatus(res);
     } else {
-      if (badgeEl) {
-        badgeEl.textContent = 'Unsupported Site';
-        badgeEl.className = 'platform-badge';
-      }
-      if (pillEl) {
-        pillEl.textContent = 'Not Supported';
-        pillEl.className = 'apply-eligibility-pill';
-      }
-      if (btnApply) btnApply.disabled = true;
-      if (btnText) btnText.textContent = 'FAST AUTO APPLY (1-CLICK)';
-      if (notesEl) {
-        notesEl.innerHTML = '<span>Navigate to a job listing on LinkedIn (Easy Apply), Indeed, Greenhouse, or Lever.</span>';
-      }
+      updateAutoApplyUIFromStatus({
+        detected: Boolean(state.activeJobPageStatus?.isJobPage),
+        platformName: 'LinkedIn',
+        canApply: false,
+        jobTitle: state.activeJobPageStatus?.titlePreview || '',
+        companyName: state.activeJobPageStatus?.companyPreview || '',
+        reason: 'Select an active job posting on LinkedIn (Easy Apply).'
+      });
     }
   } catch (err) {
-    if (badgeEl) badgeEl.textContent = 'Standby';
-    if (pillEl) pillEl.textContent = 'Standby';
-    if (btnApply) btnApply.disabled = true;
+    updateAutoApplyUIFromStatus({
+      detected: Boolean(state.activeJobPageStatus?.isJobPage),
+      platformName: 'LinkedIn',
+      canApply: false,
+      jobTitle: state.activeJobPageStatus?.titlePreview || 'Active Job Opportunity',
+      companyName: state.activeJobPageStatus?.companyPreview || 'Company Not Specified',
+      reason: 'Open a job listing on LinkedIn (Easy Apply), Indeed, Greenhouse, or Lever.'
+    });
   }
 }
 

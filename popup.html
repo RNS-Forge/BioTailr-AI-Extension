@@ -10,7 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Local HTML2PDF library for strict MV3 compliance -->
   <script src="lib/html2pdf.bundle.min.js"></script>
-  <script src="mock-chrome-api.js"></script>
   <script src="automation/context-manager.js"></script>
 </head>
 <body>
@@ -447,44 +446,6 @@
     <!-- Hidden Offscreen Container for PDF rendering -->
     <div id="hidden-resume-sandbox" style="position: absolute; left: -9999px; top: -9999px; width: 210mm;"></div>
   </div>
-
-  <script>
-    function switchFeatureTab(targetId) {
-      var tabs = document.querySelectorAll('.feature-nav-tab');
-      for (var i = 0; i < tabs.length; i++) {
-        var isTarget = tabs[i].getAttribute('data-target') === targetId;
-        tabs[i].classList.toggle('active', isTarget);
-      }
-      var views = ['view-tailor', 'view-auto-apply', 'view-context'];
-      for (var j = 0; j < views.length; j++) {
-        var v = document.getElementById(views[j]);
-        if (v) {
-          var show = views[j] === targetId;
-          v.classList.toggle('active', show);
-          v.style.setProperty('display', show ? 'flex' : 'none', 'important');
-        }
-      }
-      if (window.switchFeatureView) {
-        window.switchFeatureView(targetId);
-      }
-    }
-    window.switchFeatureTab = switchFeatureTab;
-
-    document.addEventListener('click', function(e) {
-      var btn = e.target.closest('.feature-nav-tab');
-      if (btn) {
-        e.preventDefault();
-        var target = btn.getAttribute('data-target');
-        if (target) switchFeatureTab(target);
-      }
-    });
-
-    window.addEventListener('DOMContentLoaded', function() {
-      var hash = (window.location.hash || '').replace('#', '').toLowerCase();
-      if (hash.includes('context')) switchFeatureTab('view-context');
-      else if (hash.includes('auto-apply') || hash.includes('autoapply')) switchFeatureTab('view-auto-apply');
-    });
-  </script>
 
   <script type="module" src="popup.js"></script>
 </body>
