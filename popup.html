@@ -192,42 +192,55 @@
          ========================================================= -->
     <div class="feature-view" id="view-auto-apply">
       <div class="auto-apply-viewport">
-        <!-- Detection Status Card -->
+                <!-- Executive Job Detection & Match Card -->
         <div class="apply-status-card" id="apply-status-card">
           <div class="apply-card-top">
-            <span class="platform-badge" id="auto-apply-platform-badge">Detecting Platform...</span>
-            <span class="apply-eligibility-pill" id="auto-apply-eligibility-pill">Scanning</span>
+            <div class="apply-brand-status">
+              <span class="apply-status-dot" id="apply-status-dot"></span>
+              <span class="platform-badge" id="auto-apply-platform-badge">LinkedIn</span>
+            </div>
+            <span class="apply-eligibility-pill" id="auto-apply-eligibility-pill">Scanning Active Tab</span>
           </div>
 
           <div class="apply-card-role-wrap">
             <h3 class="apply-role-title" id="auto-apply-job-title">Navigate to a Job Listing</h3>
-            <p class="apply-company-sub" id="auto-apply-company-name">Open LinkedIn, Indeed, Greenhouse, or Lever</p>
+            <div class="apply-company-sub" id="auto-apply-company-name">Open LinkedIn, Indeed, Greenhouse, or Lever</div>
           </div>
 
           <div class="apply-card-notes" id="auto-apply-status-notes">
-            <span>BioTailr will automatically match your Context profile &amp; attach a 100% ATS Tailored Resume.</span>
+            <span class="notes-icon-wrap" id="auto-apply-notes-icon">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </span>
+            <span id="auto-apply-notes-text">BioTailr automatically calibrates candidate context &amp; generates a 100% ATS Tailored Resume.</span>
           </div>
         </div>
 
         <!-- Fast Apply Action Console -->
         <div class="fast-apply-action-box">
           <button class="btn-fast-auto-apply" id="btn-fast-auto-apply" disabled>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-            <span id="btn-fast-apply-text">FAST AUTO APPLY (1-CLICK)</span>
+            <span id="btn-fast-apply-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
+            <span id="btn-fast-apply-text">FAST AUTO APPLY</span>
           </button>
-          <div class="fast-apply-sub-hint">Sub-100ms instant form completion &bull; Attaches 100% ATS Resume &bull; Zero delay</div>
+          <div class="fast-apply-sub-hint" id="fast-apply-sub-hint">Sub-100ms instant form completion &bull; Attaches 100% ATS Resume &bull; Zero delay</div>
         </div>
 
-        <!-- Real-Time Activity Terminal / Log -->
+        <!-- Professional Execution Activity Console -->
         <div class="auto-apply-terminal">
           <div class="terminal-header">
-            <span class="terminal-title">LIVE AUTO-APPLY LOG</span>
-            <button class="terminal-clear-btn" id="btn-clear-terminal">Clear</button>
+            <div class="terminal-header-left">
+              <span class="terminal-dot dot-red"></span>
+              <span class="terminal-dot dot-amber"></span>
+              <span class="terminal-dot dot-green"></span>
+              <span class="terminal-title">EXECUTION MONITOR</span>
+            </div>
+            <button class="terminal-clear-btn" id="btn-clear-terminal" title="Clear console feed">Clear</button>
           </div>
           <div class="terminal-feed" id="auto-apply-terminal-feed">
-            <div class="terminal-line info">⚡ High-Speed Fast Apply initialized.</div>
-            <div class="terminal-line">⚡ Context profile loaded: Ready to auto-populate.</div>
-            <div class="terminal-line dim">Waiting for supported job application page...</div>
+            <div class="terminal-line"><span class="t-tag system">[SYSTEM]</span> Application automation pipeline initialized.</div>
+            <div class="terminal-line"><span class="t-tag ready">[READY]</span> Master profile loaded: Ready to auto-populate.</div>
+            <div class="terminal-line dim"><span class="t-tag dim">[STANDBY]</span> Waiting for supported application page...</div>
           </div>
         </div>
       </div>

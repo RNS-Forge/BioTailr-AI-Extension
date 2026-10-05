@@ -70,7 +70,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         sendResponse({ success: true, result });
       } catch (err) {
-        chrome.runtime.sendMessage({ action: 'AUTO_APPLY_PROGRESS', message: '❌ Error: ' + err.message }).catch(() => {});
+        chrome.runtime.sendMessage({ action: 'AUTO_APPLY_PROGRESS', message: 'Error: ' + err.message }).catch(() => {});
         sendResponse({ success: false, error: err.message });
       }
     })();

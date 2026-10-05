@@ -202,11 +202,11 @@ class AutoApplyOrchestrator {
   async runFastApply(context, resumeBlob, onProgress = () => {}) {
     const platform = this.getActivePlatform();
     if (!platform) {
-      onProgress('❌ No supported platform detected on this page.');
+      onProgress('No supported platform detected on this page.');
       return { success: false, reason: 'Unsupported platform' };
     }
 
-    onProgress(`⚡ Starting Fast Auto Apply on ${platform.name}...`);
+    onProgress(`Starting Fast Auto Apply sequence on ${platform.name}...`);
     return await platform.executeFastApply(context, resumeBlob, onProgress);
   }
 }

@@ -1916,13 +1916,19 @@ function handleJobSelectionChanged(msg) {
 }
 
 function updateAutoApplyUIFromStatus(res) {
+  const cardEl = document.getElementById('apply-status-card');
+  const dotEl = document.getElementById('apply-status-dot');
   const badgeEl = document.getElementById('auto-apply-platform-badge');
   const pillEl = document.getElementById('auto-apply-eligibility-pill');
   const titleEl = document.getElementById('auto-apply-job-title');
   const companyEl = document.getElementById('auto-apply-company-name');
   const notesEl = document.getElementById('auto-apply-status-notes');
+  const notesText = document.getElementById('auto-apply-notes-text');
+  const notesIcon = document.getElementById('auto-apply-notes-icon');
   const btnApply = document.getElementById('btn-fast-auto-apply');
   const btnText = document.getElementById('btn-fast-apply-text');
+  const btnIcon = document.getElementById('btn-fast-apply-icon');
+  const hintEl = document.getElementById('fast-apply-sub-hint');
 
   currentAutoApplyStatus = res;
   if (!res) return;
@@ -1937,44 +1943,81 @@ function updateAutoApplyUIFromStatus(res) {
   if (res.detected) {
     if (badgeEl) {
       badgeEl.textContent = res.platformName;
-      badgeEl.className = 'platform-badge platform-' + res.platformName.toLowerCase();
     }
 
     if (res.canApply) {
+      // Verified Easy Apply Posting
+      if (cardEl) {
+        cardEl.className = 'apply-status-card status-ready';
+      }
+      if (dotEl) {
+        dotEl.className = 'apply-status-dot ready';
+      }
       if (pillEl) {
         pillEl.textContent = res.platformName === 'LinkedIn' ? 'Easy Apply Ready' : 'Fast Apply Ready';
         pillEl.className = 'apply-eligibility-pill ready';
       }
       if (btnApply) btnApply.disabled = false;
       if (btnText) btnText.textContent = `FAST AUTO APPLY ON ${res.platformName.toUpperCase()}`;
+      if (btnIcon) {
+        btnIcon.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+      }
+      if (hintEl) {
+        hintEl.textContent = 'Sub-100ms instant form completion • Attaches 100% ATS Resume • Zero delay';
+      }
       if (notesEl) {
-        notesEl.innerHTML = '<span>100% ATS Resume ready &bull; Master profile mapped &bull; Instant sub-100ms submission</span>';
+        notesEl.className = 'apply-card-notes note-ready';
+      }
+      if (notesIcon) {
+        notesIcon.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+      }
+      if (notesText) {
+        notesText.textContent = 'Verified Easy Apply listing. BioTailr will automatically populate Context fields and attach a 100% ATS Resume.';
       }
     } else {
+      // External Application (Manual / Off-site)
+      if (cardEl) {
+        cardEl.className = 'apply-status-card status-external';
+      }
+      if (dotEl) {
+        dotEl.className = 'apply-status-dot warning';
+      }
       if (pillEl) {
         pillEl.textContent = 'External Apply (Manual)';
         pillEl.className = 'apply-eligibility-pill warning';
       }
       if (btnApply) btnApply.disabled = true;
       if (btnText) btnText.textContent = 'EXTERNAL APPLICATION (NOT EASY APPLY)';
+      if (btnIcon) {
+        btnIcon.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+      }
+      if (hintEl) {
+        hintEl.textContent = 'Select an Easy Apply job listing in LinkedIn to activate 1-Click Fast Auto Apply.';
+      }
       if (notesEl) {
-        notesEl.innerHTML = `<span>${res.reason || 'This listing directs off LinkedIn to an external company site. Select an "Easy Apply" job in LinkedIn to auto-apply.'}</span>`;
+        notesEl.className = 'apply-card-notes note-external';
+      }
+      if (notesIcon) {
+        notesIcon.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+      }
+      if (notesText) {
+        notesText.textContent = res.reason || 'This listing directs off LinkedIn to an external company site. Select an "Easy Apply" job on LinkedIn to auto-apply.';
       }
     }
   } else {
-    if (badgeEl) {
-      badgeEl.textContent = 'Standby';
-      badgeEl.className = 'platform-badge';
-    }
+    // Standby / Non-job
+    if (cardEl) cardEl.className = 'apply-status-card';
+    if (dotEl) dotEl.className = 'apply-status-dot';
+    if (badgeEl) badgeEl.textContent = 'Standby';
     if (pillEl) {
-      pillEl.textContent = 'Not Supported';
+      pillEl.textContent = 'Standby';
       pillEl.className = 'apply-eligibility-pill';
     }
     if (btnApply) btnApply.disabled = true;
-    if (btnText) btnText.textContent = 'FAST AUTO APPLY (1-CLICK)';
-    if (notesEl) {
-      notesEl.innerHTML = '<span>Navigate to a job listing on LinkedIn (Easy Apply), Indeed, Greenhouse, or Lever.</span>';
-    }
+    if (btnText) btnText.textContent = 'FAST AUTO APPLY';
+    if (hintEl) hintEl.textContent = 'Navigate to any active job listing on LinkedIn (Easy Apply), Indeed, Greenhouse, or Lever.';
+    if (notesEl) notesEl.className = 'apply-card-notes';
+    if (notesText) notesText.textContent = 'Navigate to a job listing on LinkedIn (Easy Apply), Indeed, Greenhouse, or Lever.';
   }
 }
 
@@ -2025,18 +2068,46 @@ async function refreshAutoApplyPageStatus() {
   }
 }
 
-function appendAutoApplyTerminal(msg) {
+function appendAutoApplyTerminal(msg, forcedTag = null) {
   const feed = document.getElementById('auto-apply-terminal-feed');
   if (!feed) return;
-  const line = document.createElement('div');
-  line.className = 'terminal-line';
 
-  if (msg.includes('Error') || msg.includes('❌') || msg.includes('failed')) line.classList.add('error');
-  else if (msg.includes('✅') || msg.includes('🎉') || msg.includes('submitted') || msg.includes('Auto-filled')) line.classList.add('success');
-  else if (msg.includes('⚡') || msg.includes('🚀') || msg.includes('Starting')) line.classList.add('info');
+  // Clean all emojis out of incoming messages
+  const cleanMsg = msg.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/gu, '').trim();
+
+  // Determine tag & style
+  let tag = forcedTag;
+  let tagClass = 'info';
+
+  if (!tag) {
+    const lower = cleanMsg.toLowerCase();
+    if (lower.includes('error') || lower.includes('failed') || lower.includes('fatal')) {
+      tag = '[ERROR]';
+      tagClass = 'error';
+    } else if (lower.includes('submitted') || lower.includes('completed') || lower.includes('success')) {
+      tag = '[SUCCESS]';
+      tagClass = 'ready';
+    } else if (lower.includes('note:') || lower.includes('warning') || lower.includes('manual') || lower.includes('external')) {
+      tag = '[WARN]';
+      tagClass = 'warn';
+    } else if (lower.includes('ready') || lower.includes('calibrating') || lower.includes('generated')) {
+      tag = '[READY]';
+      tagClass = 'ready';
+    } else if (lower.includes('launching') || lower.includes('dispatching') || lower.includes('step')) {
+      tag = '[EXEC]';
+      tagClass = 'info';
+    } else {
+      tag = '[INFO]';
+      tagClass = 'info';
+    }
+  }
 
   const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  line.textContent = `[${time}] ${msg}`;
+  
+  const line = document.createElement('div');
+  line.className = 'terminal-line';
+  line.innerHTML = `<span class="t-time">[${time}]</span> <span class="t-tag ${tagClass}">${tag}</span> <span>${cleanMsg}</span>`;
+
   feed.appendChild(line);
   feed.scrollTop = feed.scrollHeight;
 }
@@ -2048,22 +2119,22 @@ async function executeFastAutoApply() {
   if (btnApply) btnApply.disabled = true;
   if (btnText) btnText.textContent = 'FAST APPLY RUNNING...';
 
-  appendAutoApplyTerminal('⚡ Initializing Fast Auto Apply...');
+  appendAutoApplyTerminal('Initializing Fast Auto Apply pipeline...', '[INIT]');
 
   // Ensure context is loaded
   currentCandidateContext = collectContextFromForm();
 
   // Generate ATS PDF
-  appendAutoApplyTerminal('📄 Calibrating 100% ATS Tailored Resume PDF...');
+  appendAutoApplyTerminal('Calibrating 100% ATS Tailored Resume (1-Page A4 PDF)...', '[ATS]');
   let resumeBase64 = null;
   try {
     resumeBase64 = await generateFastApplyResumeBase64(currentCandidateContext);
-    appendAutoApplyTerminal('✅ Tailored ATS Resume generated successfully (1-Page A4 PDF)');
+    appendAutoApplyTerminal('Tailored ATS Resume generated successfully.', '[READY]');
   } catch (pdfErr) {
-    appendAutoApplyTerminal(`⚠️ Note on Resume generation: ${pdfErr.message}`);
+    appendAutoApplyTerminal(`Resume generation note: ${pdfErr.message}`, '[WARN]');
   }
 
-  appendAutoApplyTerminal('🚀 Dispatching high-speed form filling pipeline to active page...');
+  appendAutoApplyTerminal('Dispatching high-speed form filling pipeline to active page...', '[EXEC]');
 
   try {
     const res = await chrome.tabs.sendMessage(state.currentTab.id, {
@@ -2073,12 +2144,12 @@ async function executeFastAutoApply() {
     });
 
     if (res && res.success) {
-      appendAutoApplyTerminal(`🎉 ${res.result?.status === 'submitted' ? 'Application submitted successfully!' : 'Fast Apply process completed.'}`);
+      appendAutoApplyTerminal(res.result?.status === 'submitted' ? 'Application submitted successfully via Easy Apply.' : 'Fast Apply execution completed.', '[SUCCESS]');
     } else {
-      appendAutoApplyTerminal(`❌ Fast Apply outcome: ${res?.reason || res?.result?.reason || 'Completed with warnings.'}`);
+      appendAutoApplyTerminal(`Fast Apply outcome: ${res?.reason || res?.result?.reason || 'Completed with warnings.'}`, '[WARN]');
     }
   } catch (err) {
-    appendAutoApplyTerminal(`❌ Error executing Fast Apply: ${err.message}`);
+    appendAutoApplyTerminal(`Execution error: ${err.message}`, '[ERROR]');
   } finally {
     if (btnApply) btnApply.disabled = false;
     if (btnText) {

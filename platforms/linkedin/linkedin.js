@@ -105,15 +105,15 @@ class LinkedInPlatform extends BasePlatform {
   }
 
   async executeFastApply(context, resumeBlob, onStatus = () => {}) {
-    onStatus('⚡ [LinkedIn] Checking for Easy Apply button on active job...');
+    onStatus('[LinkedIn] Checking for Easy Apply button on active listing...');
     const check = this.canApply(document);
     if (!check.canApply) {
-      onStatus(`⚠️ [LinkedIn] ${check.reason}`);
+      onStatus(`[LinkedIn] Note: ${check.reason}`);
       return { success: false, reason: check.reason };
     }
 
     // 1. Launch Easy Apply Modal
-    onStatus('⚡ [LinkedIn] Launching Easy Apply modal...');
+    onStatus('[LinkedIn] Launching Easy Apply modal dialog...');
     this.simulateClick(check.button);
 
     const modal = await this.waitForElement([
@@ -124,11 +124,11 @@ class LinkedInPlatform extends BasePlatform {
     ].join(', '), 3000, 50);
 
     if (!modal) {
-      onStatus('❌ [LinkedIn] Easy Apply modal failed to open.');
+      onStatus('[LinkedIn] Easy Apply modal dialog did not appear.');
       return { success: false, reason: 'Modal did not appear' };
     }
 
-    onStatus('⚡ [LinkedIn] Modal opened! Commencing Fast Apply sequence...');
+    onStatus('[LinkedIn] Modal opened. Commencing automated application sequence...');
 
     // 2. High-speed multi-step form stepper (Max 15 iterations)
     let stepCount = 0;
@@ -137,18 +137,18 @@ class LinkedInPlatform extends BasePlatform {
     while (stepCount < maxSteps) {
       stepCount++;
       await this.sleep(40);
-      onStatus(`⚡ [LinkedIn] Step ${stepCount}: Fast-filling questions & inputs...`);
+      onStatus(`[LinkedIn] Step ${stepCount}: Processing application questions & fields...`);
 
       // Fill visible fields on this step
       const filled = this.fillVisibleFields(modal, context, resumeBlob);
       if (filled > 0) {
-        onStatus(`✓ [LinkedIn] Auto-filled ${filled} input fields.`);
+        onStatus(`[LinkedIn] Form values populated: ${filled} fields updated.`);
       }
 
       // Check for errors on current step
       const errorMsg = modal.querySelector('.artdeco-inline-feedback--error, [data-test-form-element-error-messages]');
       if (errorMsg && errorMsg.innerText.trim()) {
-        onStatus(`⚠️ [LinkedIn] Note: Required question encountered: "${errorMsg.innerText.trim().slice(0, 50)}..."`);
+        onStatus(`[LinkedIn] Note: Prompt encountered: "${errorMsg.innerText.trim().slice(0, 50)}..."`);
       }
 
       // Check primary action buttons in modal footer (ONLY VISIBLE ONES)
@@ -156,10 +156,10 @@ class LinkedInPlatform extends BasePlatform {
         || (this.isElementVisible(modal.querySelector('button[aria-label="Submit application"]')) ? modal.querySelector('button[aria-label="Submit application"]') : null);
 
       if (submitBtn) {
-        onStatus('⚡ [LinkedIn] Final Review reached! Submitting application...');
+        onStatus('[LinkedIn] Final Review step reached. Submitting application...');
         this.simulateClick(submitBtn);
         await this.waitForElement('.artdeco-modal__dismiss, [data-test-modal-close-btn], .modal-close-btn', 600, 50);
-        onStatus('🎉 [LinkedIn] Application successfully submitted via Easy Apply!');
+        onStatus('[LinkedIn] Application successfully submitted via Easy Apply.');
         return { success: true, status: 'submitted', steps: stepCount };
       }
 
@@ -167,7 +167,7 @@ class LinkedInPlatform extends BasePlatform {
         || (this.isElementVisible(modal.querySelector('button[aria-label="Review your application"]')) ? modal.querySelector('button[aria-label="Review your application"]') : null);
 
       if (reviewBtn) {
-        onStatus('⚡ [LinkedIn] Review step reached...');
+        onStatus('[LinkedIn] Review step reached. Advancing to final submission...');
         this.simulateClick(reviewBtn);
         await this.sleep(80);
         continue;
@@ -184,12 +184,12 @@ class LinkedInPlatform extends BasePlatform {
 
       // If no next, review, or submit button is found, check if modal closed (submitted)
       if (!document.body.contains(modal) || modal.getAttribute('aria-hidden') === 'true' || modal.closest('[style*="display: none"]')) {
-        onStatus('🎉 [LinkedIn] Easy Apply completed!');
+        onStatus('[LinkedIn] Application completed.');
         return { success: true, status: 'completed', steps: stepCount };
       }
 
       // No progress could be made
-      onStatus('⚠️ [LinkedIn] Reached manual review or unknown step. Waiting for user confirmation.');
+      onStatus('[LinkedIn] Manual review or custom verification required. Standing by for candidate.');
       return { success: true, status: 'manual_confirmation_needed', steps: stepCount };
     }
 
