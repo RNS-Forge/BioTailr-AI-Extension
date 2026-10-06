@@ -65,14 +65,20 @@
           font-size: 13px;
           font-weight: 600;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
-          cursor: pointer;
+          cursor: pointer !important;
+          pointer-events: auto !important;
           transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          user-select: none;
         }
         .bt-hud-pill:hover {
-          border-color: #059669;
-          color: #059669;
-          box-shadow: 0 6px 16px rgba(5, 150, 105, 0.15);
+          border-color: #059669 !important;
+          color: #059669 !important;
+          box-shadow: 0 6px 16px rgba(5, 150, 105, 0.2) !important;
           transform: translateY(-1px);
+        }
+        .bt-hud-pill:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 6px rgba(5, 150, 105, 0.15) !important;
         }
         .bt-pulse-dot {
           width: 8px;
@@ -688,18 +694,19 @@
 
       if (!pill || !panel) return;
 
-      // Draggable implementation across the entire screen for the HUD host
+      // Draggable implementation: header (when open) and pill (when collapsed)
       const host = this.container;
+      const header = this.container.querySelector('.bt-hud-header');
       let isDragging = false;
       let didDrag = false;
       let dragStartX = 0;
       let dragStartY = 0;
       let initialLeft = 0;
-      let initialTop = 0;
+      let initialBottom = 0;
       let dragOverlay = null;
 
-      host.addEventListener('mousedown', (e) => {
-        if (e.target.closest('button, input, textarea, select, a, .bt-hud-feed, [role="button"]')) return;
+      const startDrag = (e) => {
+        if (e.target.closest('button, input, textarea, select, a, .bt-hud-close, .bt-hud-feed')) return;
         if (e.button !== 0) return;
 
         didDrag = false;
@@ -709,29 +716,25 @@
 
         const rect = host.getBoundingClientRect();
         initialLeft = rect.left;
-        const initialBottom = window.innerHeight - rect.bottom;
-
-        host.style.left = initialLeft + 'px';
-        host.style.bottom = initialBottom + 'px';
-        host.style.right = 'auto';
-        host.style.top = 'auto';
-        host.style.transition = 'none';
-
-        if (!dragOverlay) {
-          dragOverlay = document.createElement('div');
-          dragOverlay.id = 'bt-ext-drag-overlay';
-          dragOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999999;cursor:grabbing;user-select:none;background:transparent;';
-          document.body.appendChild(dragOverlay);
-        }
+        initialBottom = window.innerHeight - rect.bottom;
 
         const onMouseMove = (moveEv) => {
           if (!isDragging) return;
           const dx = moveEv.clientX - dragStartX;
           const dy = moveEv.clientY - dragStartY;
 
-          if (Math.hypot(dx, dy) > 4) {
+          if (!didDrag && Math.hypot(dx, dy) > 8) {
             didDrag = true;
+            if (!dragOverlay) {
+              dragOverlay = document.createElement('div');
+              dragOverlay.id = 'bt-ext-drag-overlay';
+              dragOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999999;cursor:grabbing;user-select:none;background:transparent;pointer-events:auto;';
+              document.body.appendChild(dragOverlay);
+            }
+            host.style.transition = 'none';
           }
+
+          if (!didDrag) return;
 
           let newLeft = initialLeft + dx;
           let newBottom = initialBottom - dy;
@@ -746,6 +749,8 @@
 
           host.style.left = newLeft + 'px';
           host.style.bottom = newBottom + 'px';
+          host.style.right = 'auto';
+          host.style.top = 'auto';
         };
 
         const onMouseUp = () => {
@@ -760,16 +765,48 @@
 
         window.addEventListener('mousemove', onMouseMove, { capture: true, passive: false });
         window.addEventListener('mouseup', onMouseUp, { capture: true });
-      });
+      };
+
+      if (header) header.addEventListener('mousedown', startDrag);
+      pill.addEventListener('mousedown', startDrag);
+
+      const triggerAutoApply = async () => {
+        window.__bioTailrState = window.__bioTailrState || {};
+        window.__bioTailrState.isStarted = true;
+        window.__bioTailrState.isPaused = false;
+        host.setAttribute('data-bt-started', 'true');
+        host.setAttribute('data-bt-paused', 'false');
+        document.body.setAttribute('data-bt-started', 'true');
+        document.body.setAttribute('data-bt-paused', 'false');
+        document.dispatchEvent(new CustomEvent('biotailr:start', { detail: { time: Date.now() } }));
+
+        if (typeof window.__bioTailrAppendLog === 'function') {
+          window.__bioTailrAppendLog('START', 'Auto-Apply started by user.');
+        }
+        if (this.isRunning) return;
+        this.startAgentWorkflow();
+      };
 
       pill.addEventListener('click', (e) => {
         if (didDrag) {
           didDrag = false;
           return;
         }
-        this.isExpanded = !this.isExpanded;
-        panel.classList.toggle('open', this.isExpanded);
-        this.updateJobInfo();
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!this.isExpanded) {
+          this.isExpanded = true;
+          panel.classList.add('open');
+          this.updateJobInfo();
+        } else {
+          if (!this.isRunning && (!window.__bioTailrState || !window.__bioTailrState.isStarted)) {
+            triggerAutoApply();
+          } else {
+            this.isExpanded = false;
+            panel.classList.remove('open');
+          }
+        }
       });
 
       if (closeBtn) {
@@ -781,9 +818,9 @@
       }
 
       if (autoBtn) {
-        autoBtn.addEventListener('click', async () => {
-          if (this.isRunning) return;
-          this.startAgentWorkflow();
+        autoBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          triggerAutoApply();
         });
       }
 
