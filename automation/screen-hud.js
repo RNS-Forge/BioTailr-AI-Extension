@@ -448,16 +448,11 @@
 
       const titleBox = document.createElement('div');
       titleBox.className = 'bt-hud-title';
-      const gripIcon = document.createElement('span');
-      gripIcon.textContent = '⠿';
-      gripIcon.style.cssText = 'color: #94a3b8; font-size: 14px; margin-right: 4px; cursor: grab; font-weight: bold;';
-      gripIcon.title = 'Drag StandBy HUD';
       const panelDot = document.createElement('span');
       panelDot.className = 'bt-pulse-dot';
       panelDot.id = 'bt-panel-dot';
       const titleText = document.createElement('span');
       titleText.textContent = 'BioTailr Autonomous Agent';
-      titleBox.appendChild(gripIcon);
       titleBox.appendChild(panelDot);
       titleBox.appendChild(titleText);
 
@@ -714,12 +709,12 @@
 
         const rect = host.getBoundingClientRect();
         initialLeft = rect.left;
-        initialTop = rect.top;
+        const initialBottom = window.innerHeight - rect.bottom;
 
         host.style.left = initialLeft + 'px';
-        host.style.top = initialTop + 'px';
+        host.style.bottom = initialBottom + 'px';
         host.style.right = 'auto';
-        host.style.bottom = 'auto';
+        host.style.top = 'auto';
         host.style.transition = 'none';
 
         if (!dragOverlay) {
@@ -738,19 +733,19 @@
             didDrag = true;
           }
 
-          let newX = initialLeft + dx;
-          let newY = initialTop + dy;
+          let newLeft = initialLeft + dx;
+          let newBottom = initialBottom - dy;
 
-          const minX = 0;
-          const maxX = Math.max(0, window.innerWidth - host.offsetWidth);
-          const minY = 0;
-          const maxY = Math.max(0, window.innerHeight - host.offsetHeight);
+          const minLeft = 8;
+          const maxLeft = Math.max(8, window.innerWidth - host.offsetWidth - 8);
+          const minBottom = 8;
+          const maxBottom = Math.max(8, window.innerHeight - host.offsetHeight - 8);
 
-          newX = Math.max(minX, Math.min(maxX, newX));
-          newY = Math.max(minY, Math.min(maxY, newY));
+          newLeft = Math.max(minLeft, Math.min(maxLeft, newLeft));
+          newBottom = Math.max(minBottom, Math.min(maxBottom, newBottom));
 
-          host.style.left = newX + 'px';
-          host.style.top = newY + 'px';
+          host.style.left = newLeft + 'px';
+          host.style.bottom = newBottom + 'px';
         };
 
         const onMouseUp = () => {
