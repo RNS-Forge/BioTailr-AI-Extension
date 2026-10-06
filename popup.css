@@ -1327,7 +1327,7 @@ body {
 /* Professional Obsidian Activity Console */
 .auto-apply-terminal {
   background: #090d16;
-  border-radius: 10px;
+  border-radius: 6px;
   border: 1px solid #1e293b;
   overflow: hidden;
   display: flex;
