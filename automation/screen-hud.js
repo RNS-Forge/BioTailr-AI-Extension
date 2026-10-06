@@ -116,6 +116,8 @@
           background: #f8fafc;
           border-bottom: 1px solid #e2e8f0;
           border-radius: 6px 6px 0 0;
+          cursor: grab;
+          user-select: none;
         }
         .bt-hud-title {
           display: flex;
@@ -446,11 +448,16 @@
 
       const titleBox = document.createElement('div');
       titleBox.className = 'bt-hud-title';
+      const gripIcon = document.createElement('span');
+      gripIcon.textContent = '⠿';
+      gripIcon.style.cssText = 'color: #94a3b8; font-size: 14px; margin-right: 4px; cursor: grab; font-weight: bold;';
+      gripIcon.title = 'Drag StandBy HUD';
       const panelDot = document.createElement('span');
       panelDot.className = 'bt-pulse-dot';
       panelDot.id = 'bt-panel-dot';
       const titleText = document.createElement('span');
       titleText.textContent = 'BioTailr Autonomous Agent';
+      titleBox.appendChild(gripIcon);
       titleBox.appendChild(panelDot);
       titleBox.appendChild(titleText);
 
@@ -686,7 +693,85 @@
 
       if (!pill || !panel) return;
 
-      pill.addEventListener('click', () => {
+      // Draggable implementation across the entire screen for the HUD host
+      const host = this.container;
+      let isDragging = false;
+      let didDrag = false;
+      let dragStartX = 0;
+      let dragStartY = 0;
+      let initialLeft = 0;
+      let initialTop = 0;
+      let dragOverlay = null;
+
+      host.addEventListener('mousedown', (e) => {
+        if (e.target.closest('button, input, textarea, select, a, .bt-hud-feed, [role="button"]')) return;
+        if (e.button !== 0) return;
+
+        didDrag = false;
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+
+        const rect = host.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+
+        host.style.left = initialLeft + 'px';
+        host.style.top = initialTop + 'px';
+        host.style.right = 'auto';
+        host.style.bottom = 'auto';
+        host.style.transition = 'none';
+
+        if (!dragOverlay) {
+          dragOverlay = document.createElement('div');
+          dragOverlay.id = 'bt-ext-drag-overlay';
+          dragOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999999;cursor:grabbing;user-select:none;background:transparent;';
+          document.body.appendChild(dragOverlay);
+        }
+
+        const onMouseMove = (moveEv) => {
+          if (!isDragging) return;
+          const dx = moveEv.clientX - dragStartX;
+          const dy = moveEv.clientY - dragStartY;
+
+          if (Math.hypot(dx, dy) > 4) {
+            didDrag = true;
+          }
+
+          let newX = initialLeft + dx;
+          let newY = initialTop + dy;
+
+          const minX = 0;
+          const maxX = Math.max(0, window.innerWidth - host.offsetWidth);
+          const minY = 0;
+          const maxY = Math.max(0, window.innerHeight - host.offsetHeight);
+
+          newX = Math.max(minX, Math.min(maxX, newX));
+          newY = Math.max(minY, Math.min(maxY, newY));
+
+          host.style.left = newX + 'px';
+          host.style.top = newY + 'px';
+        };
+
+        const onMouseUp = () => {
+          isDragging = false;
+          if (dragOverlay && dragOverlay.parentNode) {
+            dragOverlay.parentNode.removeChild(dragOverlay);
+            dragOverlay = null;
+          }
+          window.removeEventListener('mousemove', onMouseMove, { capture: true });
+          window.removeEventListener('mouseup', onMouseUp, { capture: true });
+        };
+
+        window.addEventListener('mousemove', onMouseMove, { capture: true, passive: false });
+        window.addEventListener('mouseup', onMouseUp, { capture: true });
+      });
+
+      pill.addEventListener('click', (e) => {
+        if (didDrag) {
+          didDrag = false;
+          return;
+        }
         this.isExpanded = !this.isExpanded;
         panel.classList.toggle('open', this.isExpanded);
         this.updateJobInfo();
