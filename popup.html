@@ -453,8 +453,14 @@
           <p class="popup-modal-desc">Download the standalone <strong>BioTailr Desktop Auto-Apply Runner</strong> package (<code>biotailr-desktop-runner.zip</code>)?</p>
           <div class="popup-modal-feature-list">
             <div class="popup-feature-item"><span class="feature-dot"></span><span>Direct Chrome DevTools Protocol automation over WebSocket</span></div>
-            <div class="popup-feature-item"><span class="feature-dot"></span><span>Strict enforcement of candidate rules (1 college, 1 school, max 3 experiences)</span></div>
+            <div class="popup-feature-item"><span class="feature-dot"></span><span>Draggable on-screen StandBy HUD with Start Auto Apply control gate</span></div>
             <div class="popup-feature-item"><span class="feature-dot"></span><span>Zero npm dependencies with pre-configured candidate context</span></div>
+          </div>
+          <div style="margin-top: 12px; padding: 10px 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 11.5px; color: #166534; font-weight: 500;">
+              <input type="checkbox" id="chk-startup-permission" checked style="margin-top: 2px;">
+              <span>Include <strong>Windows Startup Launcher</strong>: allows StandBy to start automatically whenever you log into Windows.</span>
+            </label>
           </div>
         </div>
         <div class="popup-modal-footer">
@@ -503,7 +509,16 @@
               <div class="popup-step-text">
                 Windows: Double-click <code>start-runner.bat</code><br>
                 Terminal: <span class="popup-code-badge">node apply-runner.js</span><br>
-                Candidate data can be adjusted in <code>candidate-profile.json</code>.
+                The draggable StandBy HUD will mount in Chrome. Click <strong>START AUTO APPLY</strong> in the HUD to begin.
+              </div>
+            </div>
+          </div>
+          <div class="popup-step-item">
+            <span class="popup-step-num">5</span>
+            <div class="popup-step-content">
+              <div class="popup-step-title">Optional: Enable Windows Login Startup</div>
+              <div class="popup-step-text">
+                Double-click <code>enable-windows-startup.bat</code> to launch StandBy automatically whenever Windows boots and logs in. Run <code>disable-windows-startup.bat</code> to remove.
               </div>
             </div>
           </div>
