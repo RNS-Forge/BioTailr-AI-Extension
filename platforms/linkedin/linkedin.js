@@ -137,9 +137,9 @@ class LinkedInPlatform extends BasePlatform {
     const AgentClass = window.BioTailrApplyAgent || (typeof BioTailrApplyAgent !== 'undefined' ? BioTailrApplyAgent : null);
     const agent = AgentClass ? new AgentClass() : null;
 
-    // 2. High-speed multi-step form stepper (Max 25 iterations for long paginated applications)
+    // 2. High-speed multi-step form stepper (Max 60 iterations for long paginated applications)
     let stepCount = 0;
-    const maxSteps = 25;
+    const maxSteps = 60;
 
     while (stepCount < maxSteps) {
       stepCount++;
@@ -455,7 +455,29 @@ class LinkedInPlatform extends BasePlatform {
         }
       }
     }
-    onStatus('[LinkedIn] Batch finished or no more unapplied Easy Apply jobs found in search list.');
+
+    // Scroll feed down to trigger lazy loading of more jobs on this page
+    const feedContainer = document.querySelector('.jobs-search-results-list, .jobs-search-results, div[data-view-name="job-search-results-list"]');
+    if (feedContainer) {
+      feedContainer.scrollTop += 800;
+    }
+
+    // Attempt to navigate to the next search results page
+    const nextBtn = document.querySelector('button[aria-label="View next page"], button[aria-label="Next"], .jobs-search-pagination__button--next')
+      || Array.from(document.querySelectorAll('button')).find(b => {
+        const aria = (b.getAttribute('aria-label') || '').toLowerCase();
+        const txt = (b.innerText || '').toLowerCase().trim();
+        return (aria.includes('next page') || txt === 'next') && !b.disabled && b.offsetWidth > 0;
+      });
+
+    if (nextBtn && !nextBtn.disabled) {
+      onStatus('[LinkedIn] Current page exhausted. Advancing to next search results page...');
+      nextBtn.scrollIntoView({ behavior: 'instant', block: 'center' });
+      this.simulateClick(nextBtn);
+      return true;
+    }
+
+    onStatus('[LinkedIn] All search results pages processed. No more unapplied Easy Apply jobs found.');
     return false;
   }
 }
