@@ -180,7 +180,7 @@ class LinkedInPlatform extends BasePlatform {
         onStatus(`[LinkedIn] Form values populated: ${filled} fields updated.`);
       }
 
-      // Check for any open typeahead/combobox dropdown options and select the first
+      // Check for any open typeahead/combobox dropdown options and select Coimbatore option
       const openOptions = Array.from(document.querySelectorAll([
         '[role="listbox"] [role="option"]',
         'div[role="option"]',
@@ -193,13 +193,35 @@ class LinkedInPlatform extends BasePlatform {
 
       if (openOptions.length > 0) {
         onStatus('[LinkedIn] Selecting matched option from open dropdown...');
-        const opt = openOptions[0];
+        const coimbatoreFull = openOptions.find(o => /coimbatore.*tamil\s*nadu/i.test(o.innerText || ''));
+        const opt = coimbatoreFull || openOptions.find(o => /coimbatore/i.test(o.innerText || '')) || openOptions[0];
         try {
           opt.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
           opt.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
           opt.click();
         } catch(e) {}
         await this.sleep(250);
+      }
+
+      // Check for "Remove from your application?" modal
+      const removeDialogs = Array.from(document.querySelectorAll('dialog, [role="dialog"], .artdeco-modal')).filter(d => {
+        if (d === modal) return false;
+        const txt = (d.innerText || '').toLowerCase();
+        return txt.includes('remove from your application') || txt.includes('remove from application') || txt.includes('this will not affect your linkedin profile') || (txt.includes('remove') && txt.includes('cancel') && !d.querySelector('.jobs-easy-apply-form-section__grouping'));
+      });
+
+      for (const d of removeDialogs) {
+        onStatus('[LinkedIn] Intercepted Remove confirmation prompt. Clicking Remove...');
+        const btns = Array.from(d.querySelectorAll('button, a[role="button"], [role="button"]')).filter(b => b.offsetWidth > 0 || b.offsetHeight > 0);
+        const rmBtn = btns.find(b => {
+          const t = (b.innerText || b.getAttribute('aria-label') || '').trim().toLowerCase();
+          return t === 'remove' || t.startsWith('remove') || b.classList.contains('artdeco-modal__confirm-dialog-btn') || b.hasAttribute('data-test-dialog-primary-btn');
+        });
+        if (rmBtn) {
+          try { rmBtn.click(); } catch(e) {}
+          this.simulateClick(rmBtn);
+          await this.sleep(300);
+        }
       }
 
       // Check for "Update your profile" or intermediate confirmation dialog
@@ -400,7 +422,30 @@ class LinkedInPlatform extends BasePlatform {
       }
     }
 
-    // 2. WORK EXPERIENCE: Keep strictly max 3 experiences
+    // 2. WORK EXPERIENCE: Delete draft experience sub-card or prune extra entries
+    const deleteExpBtn = Array.from(modal.querySelectorAll('button, a[role="button"]')).find(b => {
+      const txt = (b.innerText || b.getAttribute('aria-label') || '').toLowerCase().trim();
+      return (txt.includes('delete experience') || txt === 'delete experience') && this.isElementVisible(b);
+    });
+
+    if (deleteExpBtn) {
+      try {
+        onStatus('[LinkedIn] Clicking "Delete experience" on draft sub-card...');
+        this.simulateClick(deleteExpBtn);
+        await this.sleep(400);
+
+        const removeConfirmBtn = Array.from(document.querySelectorAll('.artdeco-modal button, [role="dialog"] button')).find(b => {
+          const t = (b.innerText || b.getAttribute('aria-label') || '').trim().toLowerCase();
+          return (t === 'remove' || t.startsWith('remove')) && this.isElementVisible(b);
+        }) || document.querySelector('.artdeco-modal__confirm-dialog-btn, button[data-control-name="confirm_delete"], button.artdeco-button--primary');
+
+        if (removeConfirmBtn && this.isElementVisible(removeConfirmBtn)) {
+          this.simulateClick(removeConfirmBtn);
+          await this.sleep(300);
+        }
+      } catch(e) {}
+    }
+
     if (modalText.includes('work experience')) {
       const expRemoveButtons = Array.from(modal.querySelectorAll('button, a[role="button"]')).filter(b => {
         const txt = (b.innerText || b.getAttribute('aria-label') || '').toLowerCase().trim();
@@ -414,9 +459,13 @@ class LinkedInPlatform extends BasePlatform {
             const btn = expRemoveButtons[i];
             onStatus(`[LinkedIn] Removing extra experience entry #${i + 1}...`);
             this.simulateClick(btn);
-            await this.sleep(300);
+            await this.sleep(350);
 
-            const confirmBtn = document.querySelector('.artdeco-modal__confirm-dialog-btn, button[data-control-name="confirm_delete"], button.artdeco-button--primary');
+            const confirmBtn = Array.from(document.querySelectorAll('.artdeco-modal button, [role="dialog"] button')).find(b => {
+              const t = (b.innerText || b.getAttribute('aria-label') || '').trim().toLowerCase();
+              return (t === 'remove' || t.startsWith('remove')) && this.isElementVisible(b);
+            }) || document.querySelector('.artdeco-modal__confirm-dialog-btn, button[data-control-name="confirm_delete"], button.artdeco-button--primary');
+
             if (confirmBtn && confirmBtn !== btn && this.isElementVisible(confirmBtn)) {
               this.simulateClick(confirmBtn);
               await this.sleep(300);

@@ -489,10 +489,13 @@ ${JSON.stringify(screenState.elements.map(e => ({
 
         // Auto-solve typeahead comboboxes (e.g. Location or City)
         if (el.getAttribute('role') === 'combobox' || (el.id && el.id.includes('typeahead'))) {
-          await new Promise(r => setTimeout(r, 200));
-          const option = document.querySelector('[role="listbox"] [role="option"], .basic-typeahead__selectable, div[class*="typeahead"] div');
-          if (option) {
-            try { option.click(); } catch(e) {}
+          await new Promise(r => setTimeout(r, 250));
+          const options = Array.from(document.querySelectorAll('[role="listbox"] [role="option"], .basic-typeahead__selectable, div[class*="typeahead"] div, .search-basic-typeahead__results li, ul[id*="typeahead"] li'));
+          const targetOpt = options.find(o => /coimbatore.*tamil\s*nadu/i.test(o.innerText || ''))
+            || options.find(o => /coimbatore/i.test(o.innerText || ''))
+            || options[0];
+          if (targetOpt) {
+            try { targetOpt.click(); } catch(e) {}
           }
         }
       } else if (tag === 'textarea') {

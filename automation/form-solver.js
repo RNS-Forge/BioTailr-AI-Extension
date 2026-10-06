@@ -122,12 +122,12 @@ class FastFormSolver {
     if (/phone|mobile|cell|contact\s*number/i.test(l)) return p.phone;
 
     // Address & Location (including Typeahead Location Comboboxes)
-    if (/street\s*address|address\s*line|home\s*address/i.test(l)) return p.address || p.city || 'Bengaluru, Karnataka, India';
+    if (/street\s*address|address\s*line|home\s*address/i.test(l)) return p.address || p.location || 'Coimbatore, Tamil Nadu, India';
     if (/location|city|town|metro|area|where/i.test(l) || (/combobox|typeahead/i.test(l) && !/company|title|school|college|degree|skill|headline|name/i.test(l))) {
-      return p.city || 'Bengaluru, Karnataka, India';
+      return p.location || p.city || 'Coimbatore, Tamil Nadu, India';
     }
-    if (/state|province|region/i.test(l)) return p.state || 'Karnataka';
-    if (/postal|zip|pin\s*code/i.test(l)) return p.postalCode || '560001';
+    if (/state|province|region/i.test(l)) return p.state || 'Tamil Nadu';
+    if (/postal|zip|pin\s*code/i.test(l)) return p.postalCode || '641001';
     if (/country/i.test(l)) return p.country || 'India';
 
     // URLs & Links
