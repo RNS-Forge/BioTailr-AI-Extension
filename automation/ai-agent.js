@@ -360,14 +360,22 @@ ${JSON.stringify(screenState.elements.map(e => ({
           val = "Bachelor's Degree";
         } else if (/field\s*of\s*study|major|department/i.test(lbl)) {
           val = 'Computer Science and Engineering';
+        } else if (/headline/i.test(lbl)) {
+          val = 'Generative AI & Full Stack Engineer';
+        } else if (/income.*expectation/i.test(lbl)) {
+          val = '1,200,000 INR (12 LPA)';
         } else if (/current.*salary|current.*ctc/i.test(lbl)) {
           val = '800,000 INR (8 LPA)';
         } else if (/expected.*salary|expected.*ctc/i.test(lbl)) {
           val = '1,200,000 INR (12 LPA)';
+        } else if (/organisation|organization|company/i.test(lbl)) {
+          val = 'Axodian';
+        } else if (/designation|job.*title/i.test(lbl)) {
+          val = 'Full Stack & AI Engineer';
         } else if (/notice/i.test(lbl)) {
-          val = '15 days';
+          val = '15';
         } else if (!el.currentValue) {
-          val = `${fullName} — Full Stack & Generative AI Engineer (2+ years experience) specializing in scalable architectures, Python, microservices, and AI-enabled software solutions.`;
+          val = fullName;
         }
 
         if (val !== null && (!el.currentValue || /phone|email|name|salary|ctc|years|city|location|school|linkedin|portfolio|url|other/i.test(lbl))) {
