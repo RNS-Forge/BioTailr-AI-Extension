@@ -342,12 +342,12 @@ ${JSON.stringify(screenState.elements.map(e => ({
           val = p.phone || '+91 9361599018';
         } else if (/email/i.test(lbl)) {
           val = p.email || '2005sanjaynrs@gmail.com';
-        } else if (/first\s*name/i.test(lbl)) {
-          val = p.firstName || 'Sanjay';
-        } else if (/last\s*name/i.test(lbl)) {
-          val = p.lastName || 'N';
         } else if (/city|location|town|where.*based/i.test(lbl)) {
           val = 'Coimbatore, Tamil Nadu, India';
+        } else if (/first\s*name/i.test(lbl) && !/city|location/i.test(lbl)) {
+          val = p.firstName || 'Sanjay';
+        } else if (/last\s*name/i.test(lbl) && !/city|location/i.test(lbl)) {
+          val = p.lastName || 'N';
         } else if (/linkedin/i.test(lbl)) {
           val = p.linkedinUrl || 'https://www.linkedin.com/in/sanjay--n';
         } else if (/portfolio|website|online.*url|other/i.test(lbl)) {

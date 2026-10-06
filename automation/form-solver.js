@@ -114,14 +114,7 @@ class FastFormSolver {
 
     const l = fieldLabel;
 
-    // Contact & Name
-    if (/first\s*name|given\s*name|^fname$/i.test(l)) return p.firstName || p.fullName.split(' ')[0];
-    if (/last\s*name|family\s*name|surname|^lname$/i.test(l)) return p.lastName || p.fullName.split(' ').slice(1).join(' ');
-    if (/full\s*name|your\s*name|applicant\s*name|^name$/i.test(l)) return p.fullName;
-    if (/email|e-mail/i.test(l)) return p.email;
-    if (/phone|mobile|cell|contact\s*number/i.test(l)) return p.phone;
-
-    // Address & Location (including Typeahead Location Comboboxes)
+    // Address & Location (prioritized to prevent false name matches)
     if (/street\s*address|address\s*line|home\s*address/i.test(l)) return p.address || p.location || 'Coimbatore, Tamil Nadu, India';
     if (/location|city|town|metro|area|where/i.test(l) || (/combobox|typeahead/i.test(l) && !/company|title|school|college|degree|skill|headline|name/i.test(l))) {
       return p.location || p.city || 'Coimbatore, Tamil Nadu, India';
@@ -129,6 +122,13 @@ class FastFormSolver {
     if (/state|province|region/i.test(l)) return p.state || 'Tamil Nadu';
     if (/postal|zip|pin\s*code/i.test(l)) return p.postalCode || '641001';
     if (/country/i.test(l)) return p.country || 'India';
+
+    // Contact & Name (guarded against location fields)
+    if ((/first\s*name|given\s*name|^fname$/i.test(l)) && !/city|location/i.test(l)) return p.firstName || p.fullName.split(' ')[0];
+    if ((/last\s*name|family\s*name|surname|^lname$/i.test(l)) && !/city|location/i.test(l)) return p.lastName || p.fullName.split(' ').slice(1).join(' ');
+    if ((/full\s*name|your\s*name|applicant\s*name|^name$/i.test(l)) && !/city|location/i.test(l)) return p.fullName;
+    if (/email|e-mail/i.test(l)) return p.email;
+    if (/phone|mobile|cell|contact\s*number/i.test(l)) return p.phone;
 
     // URLs & Links
     if (/linkedin/i.test(l)) return p.linkedinUrl || 'https://www.linkedin.com/in/sanjay--n';
