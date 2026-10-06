@@ -648,6 +648,20 @@
 
       document.body.appendChild(host);
       this.container = host;
+
+      // Auto-open panel on LinkedIn jobs pages so the StandBy HUD is immediately visible
+      if (window.location.href.includes('linkedin.com/jobs')) {
+        this.isExpanded = true;
+        panel.classList.add('open');
+      }
+
+      // Guardian interval to ensure HUD stays mounted across SPA updates
+      setInterval(() => {
+        if (!document.getElementById('biotailr-agent-hud') && document.body) {
+          document.body.appendChild(host);
+        }
+      }, 2000);
+
       this.bindEvents();
       this.updateJobInfo();
     }

@@ -23,14 +23,41 @@ class FastFormSolver {
     element.dispatchEvent(new Event('change', { bubbles: true }));
     element.dispatchEvent(new Event('blur', { bubbles: true }));
 
-    // Support for typeahead autocomplete dropdowns (e.g. LinkedIn location)
-    if (element.getAttribute('role') === 'combobox' || element.getAttribute('aria-autocomplete') === 'list' || (element.dataset && element.dataset.testid === 'typeahead-input')) {
-      setTimeout(() => {
-        const option = document.querySelector('[role="listbox"] [role="option"], .typeahead-results li, ul[id*="typeahead"] li');
-        if (option) {
-          try { option.click(); } catch(e) {}
+    // Support for typeahead autocomplete dropdowns (e.g. LinkedIn location, city, company)
+    const isCombobox = element.getAttribute('role') === 'combobox'
+      || element.getAttribute('aria-autocomplete') === 'list'
+      || (element.dataset && element.dataset.testid === 'typeahead-input')
+      || Boolean(element.closest('.search-basic-typeahead, .search-vertical-typeahead'));
+
+    if (isCombobox) {
+      const trySelectOption = () => {
+        const options = Array.from(document.querySelectorAll([
+          '[role="listbox"] [role="option"]',
+          'div[role="option"]',
+          '.basic-typeahead__selectable-list li',
+          '.search-basic-typeahead__results li',
+          'ul[id*="typeahead"] li',
+          'div[id*="typeahead"] li',
+          '[role="listbox"] li',
+          '[role="listbox"] > div'
+        ].join(', '))).filter(o => o.offsetWidth > 0 || o.offsetHeight > 0);
+
+        if (options.length > 0) {
+          const opt = options[0];
+          try {
+            opt.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            opt.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+            opt.click();
+          } catch(e) {}
+          return true;
         }
-      }, 120);
+        return false;
+      };
+
+      // Poll at multiple intervals to catch async dropdown rendering
+      setTimeout(trySelectOption, 150);
+      setTimeout(trySelectOption, 350);
+      setTimeout(trySelectOption, 650);
     }
   }
 
@@ -43,8 +70,10 @@ class FastFormSolver {
 
     // 1. Explicit label via for attribute
     if (element.id) {
-      const label = document.querySelector(`label[for="${CSS.escape(element.id)}"]`);
-      if (label && label.innerText) parts.push(label.innerText);
+      try {
+        const label = document.querySelector(`label[for="${CSS.escape(element.id)}"]`);
+        if (label && label.innerText) parts.push(label.innerText);
+      } catch(e) {}
     }
 
     // 2. Parent label
@@ -52,7 +81,7 @@ class FastFormSolver {
     if (parentLabel && parentLabel.innerText) parts.push(parentLabel.innerText);
 
     // 3. Fieldset legend or question container
-    const fieldset = element.closest('fieldset, .jobs-easy-apply-form-section__grouping, .fb-dash-form-element');
+    const fieldset = element.closest('fieldset, .jobs-easy-apply-form-section__grouping, .fb-dash-form-element, [data-test-single-typeahead-entity-form-component], div[class*="form-component"]');
     if (fieldset) {
       const legend = fieldset.querySelector('legend, label, .fb-dash-form-element__label, .t-14') || fieldset.previousElementSibling;
       if (legend && legend.innerText) parts.push(legend.innerText);
@@ -63,6 +92,11 @@ class FastFormSolver {
     if (element.getAttribute('placeholder')) parts.push(element.getAttribute('placeholder'));
     if (element.getAttribute('name')) parts.push(element.getAttribute('name'));
     if (element.id) parts.push(element.id);
+
+    // 5. Combobox / Typeahead marker
+    if (element.getAttribute('role') === 'combobox' || element.getAttribute('aria-autocomplete') === 'list' || Boolean(element.closest('.search-basic-typeahead, .search-vertical-typeahead'))) {
+      parts.push('combobox typeahead');
+    }
 
     return parts.join(' ').toLowerCase().replace(/\s+/g, ' ').trim();
   }
@@ -87,11 +121,13 @@ class FastFormSolver {
     if (/email|e-mail/i.test(l)) return p.email;
     if (/phone|mobile|cell|contact\s*number/i.test(l)) return p.phone;
 
-    // Address & Location
-    if (/street\s*address|address\s*line|home\s*address/i.test(l)) return p.address || 'Coimbatore, Tamil Nadu';
-    if (/location|city|town/i.test(l)) return p.city || 'Coimbatore';
-    if (/state|province|region/i.test(l)) return p.state || 'Tamil Nadu';
-    if (/postal|zip|pin\s*code/i.test(l)) return p.postalCode || '641001';
+    // Address & Location (including Typeahead Location Comboboxes)
+    if (/street\s*address|address\s*line|home\s*address/i.test(l)) return p.address || p.city || 'Bengaluru, Karnataka, India';
+    if (/location|city|town|metro|area|where/i.test(l) || (/combobox|typeahead/i.test(l) && !/company|title|school|college|degree|skill|headline|name/i.test(l))) {
+      return p.city || 'Bengaluru, Karnataka, India';
+    }
+    if (/state|province|region/i.test(l)) return p.state || 'Karnataka';
+    if (/postal|zip|pin\s*code/i.test(l)) return p.postalCode || '560001';
     if (/country/i.test(l)) return p.country || 'India';
 
     // URLs & Links

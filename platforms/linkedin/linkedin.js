@@ -180,6 +180,64 @@ class LinkedInPlatform extends BasePlatform {
         onStatus(`[LinkedIn] Form values populated: ${filled} fields updated.`);
       }
 
+      // Check for any open typeahead/combobox dropdown options and select the first
+      const openOptions = Array.from(document.querySelectorAll([
+        '[role="listbox"] [role="option"]',
+        'div[role="option"]',
+        '.basic-typeahead__selectable-list li',
+        '.search-basic-typeahead__results li',
+        'ul[id*="typeahead"] li',
+        'div[id*="typeahead"] li',
+        '[role="listbox"] li'
+      ].join(', '))).filter(o => o.offsetWidth > 0 || o.offsetHeight > 0);
+
+      if (openOptions.length > 0) {
+        onStatus('[LinkedIn] Selecting matched option from open dropdown...');
+        const opt = openOptions[0];
+        try {
+          opt.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+          opt.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+          opt.click();
+        } catch(e) {}
+        await this.sleep(250);
+      }
+
+      // Check for "Update your profile" or intermediate confirmation dialog
+      const updateDialogs = Array.from(document.querySelectorAll('dialog, [role="dialog"], .artdeco-modal')).filter(d => {
+        if (d === modal) return false;
+        const txt = (d.innerText || '').toLowerCase();
+        return txt.includes('update your profile') || txt.includes('save to your profile') || txt.includes('save changes') || txt.includes('continue applying');
+      });
+
+      for (const d of updateDialogs) {
+        onStatus('[LinkedIn] Intercepted profile update prompt. Pressing continue applying...');
+        const contBtn = Array.from(d.querySelectorAll('button')).find(b => /continue applying|continue|save and continue/i.test(b.innerText.trim()));
+        if (contBtn) {
+          try { contBtn.click(); } catch(e) {}
+          this.simulateClick(contBtn);
+          await this.sleep(400);
+          continue;
+        }
+        const notNow = Array.from(d.querySelectorAll('button')).find(b => /not now|no thanks|no|close|dismiss/i.test(b.innerText.trim()))
+          || d.querySelector('.artdeco-modal__dismiss, [data-test-modal-close-btn]');
+        if (notNow) {
+          try { notNow.click(); } catch(e) {}
+          this.simulateClick(notNow);
+          await this.sleep(400);
+        }
+      }
+
+      // Check if modal closed due to profile update dialog and needs to be reopened
+      if (!document.body.contains(modal) || modal.getAttribute('aria-hidden') === 'true') {
+        const checkReopen = this.canApply(document);
+        if (checkReopen.canApply && checkReopen.button) {
+          onStatus('[LinkedIn] Re-launching Easy Apply modal to continue...');
+          this.simulateClick(checkReopen.button);
+          await this.sleep(1200);
+          continue;
+        }
+      }
+
       // Check for errors on current step
       const errorMsg = modal.querySelector('.artdeco-inline-feedback--error, [data-test-form-element-error-messages]');
       if (errorMsg && errorMsg.innerText.trim()) {
