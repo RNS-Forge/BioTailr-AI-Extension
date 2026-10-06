@@ -1595,3 +1595,281 @@ body {
   min-height: 48px;
 }
 
+/* =========================================================
+   Desktop Batch Runner Card & Modals (White & Green Theme, Max 6px Radius, Zero Emojis)
+   ========================================================= */
+.desktop-runner-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.desktop-runner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.desktop-runner-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.desktop-runner-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.desktop-runner-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 5px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 4px;
+  letter-spacing: 0.4px;
+}
+
+.desktop-runner-desc {
+  font-size: 0.72rem;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.btn-download-desktop-runner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.btn-download-desktop-runner:hover {
+  background: #f8fafc;
+  border-color: #059669;
+  color: #059669;
+}
+
+/* Modals */
+.popup-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.popup-modal-overlay.open {
+  display: flex;
+}
+
+.popup-modal-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.28);
+  width: 100%;
+  max-width: 330px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: popup-modal-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popup-modal-pop {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.popup-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.popup-modal-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.popup-modal-close {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.popup-modal-close:hover {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+.popup-modal-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.72rem;
+  color: #334155;
+  line-height: 1.45;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.popup-modal-desc {
+  margin: 0;
+}
+
+.popup-modal-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.popup-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  color: #334155;
+}
+
+.feature-dot {
+  width: 4px;
+  height: 4px;
+  background: #059669;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.popup-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-modal-cancel {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-modal-cancel:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.btn-modal-confirm {
+  background: #059669;
+  border: 1px solid #047857;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-modal-confirm:hover {
+  background: #047857;
+}
+
+/* Steps in instructions modal */
+.popup-step-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.popup-step-num {
+  width: 18px;
+  height: 18px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.popup-step-content {
+  flex: 1;
+}
+
+.popup-step-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.popup-step-text {
+  font-size: 0.67rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.popup-code-badge {
+  display: inline-block;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 0.62rem;
+  color: #0f172a;
+  margin-top: 2px;
+}
+
+

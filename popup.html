@@ -243,6 +243,22 @@
             <div class="terminal-line dim"><span class="t-tag dim">[STANDBY]</span> Waiting for supported application page...</div>
           </div>
         </div>
+
+        <!-- Standalone Desktop Batch Runner Card -->
+        <div class="desktop-runner-box">
+          <div class="desktop-runner-header">
+            <div class="desktop-runner-title-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span class="desktop-runner-title">Desktop Batch Runner</span>
+            </div>
+            <span class="desktop-runner-tag">STANDALONE ZIP</span>
+          </div>
+          <p class="desktop-runner-desc">Execute high-volume automated applications directly through Chrome DevTools Protocol over WebSocket with zero npm dependencies.</p>
+          <button class="btn-download-desktop-runner" id="btn-popup-download-runner">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download Desktop Runner (ZIP)</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -458,6 +474,78 @@
 
     <!-- Hidden Offscreen Container for PDF rendering -->
     <div id="hidden-resume-sandbox" style="position: absolute; left: -9999px; top: -9999px; width: 210mm;"></div>
+
+    <!-- Modal 1: Runner Download Confirmation Modal -->
+    <div class="popup-modal-overlay" id="popup-confirm-overlay">
+      <div class="popup-modal-card">
+        <div class="popup-modal-header">
+          <span class="popup-modal-title">Confirm Package Download</span>
+          <button class="popup-modal-close" id="btn-popup-confirm-close">&times;</button>
+        </div>
+        <div class="popup-modal-body">
+          <p class="popup-modal-desc">Download the standalone <strong>BioTailr Desktop Auto-Apply Runner</strong> package (<code>biotailr-desktop-runner.zip</code>)?</p>
+          <div class="popup-modal-feature-list">
+            <div class="popup-feature-item"><span class="feature-dot"></span><span>Direct Chrome DevTools Protocol automation over WebSocket</span></div>
+            <div class="popup-feature-item"><span class="feature-dot"></span><span>Strict enforcement of candidate rules (1 college, 1 school, max 3 experiences)</span></div>
+            <div class="popup-feature-item"><span class="feature-dot"></span><span>Zero npm dependencies with pre-configured candidate context</span></div>
+          </div>
+        </div>
+        <div class="popup-modal-footer">
+          <button class="btn-modal-cancel" id="btn-popup-confirm-cancel">Cancel</button>
+          <button class="btn-modal-confirm" id="btn-popup-confirm-download">Confirm &amp; Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 2: Runner Execution Instructions Modal -->
+    <div class="popup-modal-overlay" id="popup-instructions-overlay">
+      <div class="popup-modal-card instructions-card">
+        <div class="popup-modal-header">
+          <span class="popup-modal-title">Automation Runner Setup &amp; Execution</span>
+          <button class="popup-modal-close" id="btn-popup-instructions-close">&times;</button>
+        </div>
+        <div class="popup-modal-body">
+          <div class="popup-step-item">
+            <span class="popup-step-num">1</span>
+            <div class="popup-step-content">
+              <div class="popup-step-title">Extract the ZIP Archive</div>
+              <div class="popup-step-text">Extract <code>biotailr-desktop-runner.zip</code> into any folder on your computer.</div>
+            </div>
+          </div>
+          <div class="popup-step-item">
+            <span class="popup-step-num">2</span>
+            <div class="popup-step-content">
+              <div class="popup-step-title">Launch Chrome in Debugging Mode</div>
+              <div class="popup-step-text">
+                Windows: Double-click <code>start-chrome-debug.bat</code><br>
+                Terminal: <span class="popup-code-badge">chrome --remote-debugging-port=9222</span>
+              </div>
+            </div>
+          </div>
+          <div class="popup-step-item">
+            <span class="popup-step-num">3</span>
+            <div class="popup-step-content">
+              <div class="popup-step-title">Sign into LinkedIn &amp; Open Jobs Feed</div>
+              <div class="popup-step-text">In the newly opened debugging Chrome window, log in to LinkedIn and open your target Easy Apply search results.</div>
+            </div>
+          </div>
+          <div class="popup-step-item">
+            <span class="popup-step-num">4</span>
+            <div class="popup-step-content">
+              <div class="popup-step-title">Run Autonomous Auto-Apply</div>
+              <div class="popup-step-text">
+                Windows: Double-click <code>start-runner.bat</code><br>
+                Terminal: <span class="popup-code-badge">node apply-runner.js</span><br>
+                Candidate data can be adjusted in <code>candidate-profile.json</code>.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="popup-modal-footer">
+          <button class="btn-modal-confirm" id="btn-popup-instructions-done">Understood &amp; Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="popup.js"></script>

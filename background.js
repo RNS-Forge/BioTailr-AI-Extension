@@ -78,6 +78,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Trigger download of the standalone desktop runner zip package
+  if (message.action === 'DOWNLOAD_RUNNER_ZIP') {
+    const url = chrome.runtime.getURL('downloads/biotailr-desktop-runner.zip');
+    if (chrome.downloads) {
+      chrome.downloads.download({
+        url,
+        filename: 'biotailr-desktop-runner.zip',
+        saveAs: false
+      }, (downloadId) => {
+        sendResponse({ ok: true, downloadId });
+      });
+      return true;
+    }
+  }
+
   return false;
 });
 

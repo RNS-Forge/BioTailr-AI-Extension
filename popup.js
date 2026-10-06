@@ -1872,6 +1872,52 @@ function initAutoApplyView() {
       if (feed) feed.innerHTML = '<div class="terminal-line dim">Terminal log cleared. Ready for next run.</div>';
     });
   }
+
+  // Desktop Runner Download Flow
+  const btnDownloadRunner = document.getElementById('btn-popup-download-runner');
+  const confirmOverlay = document.getElementById('popup-confirm-overlay');
+  const confirmClose = document.getElementById('btn-popup-confirm-close');
+  const confirmCancel = document.getElementById('btn-popup-confirm-cancel');
+  const confirmDownload = document.getElementById('btn-popup-confirm-download');
+
+  const instructionsOverlay = document.getElementById('popup-instructions-overlay');
+  const instructionsClose = document.getElementById('btn-popup-instructions-close');
+  const instructionsDone = document.getElementById('btn-popup-instructions-done');
+
+  if (btnDownloadRunner && confirmOverlay) {
+    btnDownloadRunner.addEventListener('click', () => {
+      confirmOverlay.classList.add('open');
+    });
+
+    const closeConfirm = () => confirmOverlay.classList.remove('open');
+    if (confirmClose) confirmClose.addEventListener('click', closeConfirm);
+    if (confirmCancel) confirmCancel.addEventListener('click', closeConfirm);
+
+    if (confirmDownload) {
+      confirmDownload.addEventListener('click', () => {
+        closeConfirm();
+        const dlUrl = (typeof chrome !== 'undefined' && chrome.runtime?.getURL)
+          ? chrome.runtime.getURL('downloads/biotailr-desktop-runner.zip')
+          : 'downloads/biotailr-desktop-runner.zip';
+        const a = document.createElement('a');
+        a.href = dlUrl;
+        a.download = 'biotailr-desktop-runner.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        appendAutoApplyTerminal('Downloaded Desktop Automation Package (biotailr-desktop-runner.zip)', '[PACKAGE]');
+
+        if (instructionsOverlay) {
+          instructionsOverlay.classList.add('open');
+        }
+      });
+    }
+
+    const closeInstructions = () => instructionsOverlay?.classList.remove('open');
+    if (instructionsClose) instructionsClose.addEventListener('click', closeInstructions);
+    if (instructionsDone) instructionsDone.addEventListener('click', closeInstructions);
+  }
 }
 
 

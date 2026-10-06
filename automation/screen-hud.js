@@ -276,6 +276,162 @@
         .bt-btn-secondary:active {
           transform: translateY(1px);
         }
+        .bt-hud-tools-row {
+          display: flex;
+          margin-top: 2px;
+        }
+        .bt-btn-download-zip {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          color: #334155;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 7px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .bt-btn-download-zip:hover {
+          background: #f8fafc;
+          border-color: #059669;
+          color: #059669;
+        }
+        /* Modal Overlays */
+        .bt-hud-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.55);
+          backdrop-filter: blur(3px);
+          z-index: 10000000;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+        .bt-hud-overlay.open {
+          display: flex;
+        }
+        .bt-hud-modal-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.28);
+          width: 440px;
+          max-width: 95vw;
+          overflow: hidden;
+          animation: bt-modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes bt-modal-pop {
+          from { opacity: 0; transform: scale(0.96) translateY(6px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .bt-modal-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 16px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .bt-modal-heading {
+          font-size: 13px;
+          font-weight: 700;
+          color: #0f172a;
+          letter-spacing: -0.1px;
+        }
+        .bt-modal-content {
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          font-size: 12px;
+          color: #334155;
+          line-height: 1.5;
+          max-height: 70vh;
+          overflow-y: auto;
+        }
+        .bt-modal-bottom {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 8px;
+          padding: 12px 16px;
+          background: #f8fafc;
+          border-top: 1px solid #e2e8f0;
+        }
+        .bt-modal-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          padding: 10px 12px;
+        }
+        .bt-modal-list-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          color: #334155;
+        }
+        .bt-list-bullet {
+          width: 5px;
+          height: 5px;
+          background: #059669;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .bt-step-block {
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+        }
+        .bt-step-index {
+          width: 22px;
+          height: 22px;
+          background: #ecfdf5;
+          border: 1px solid #a7f3d0;
+          color: #047857;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        .bt-step-details {
+          flex: 1;
+        }
+        .bt-step-name {
+          font-size: 12px;
+          font-weight: 600;
+          color: #0f172a;
+          margin-bottom: 2px;
+        }
+        .bt-step-instructions {
+          font-size: 11px;
+          color: #64748b;
+          line-height: 1.45;
+        }
+        .bt-inline-cmd {
+          display: inline-block;
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          border-radius: 4px;
+          padding: 2px 6px;
+          font-family: "JetBrains Mono", Consolas, monospace;
+          font-size: 10px;
+          color: #0f172a;
+          margin-top: 3px;
+        }
       `;
       host.appendChild(style);
 
@@ -369,9 +525,23 @@
       actions.appendChild(primaryBtn);
       actions.appendChild(secondaryBtn);
 
+      // Tools row: Download Runner ZIP
+      const toolsRow = document.createElement('div');
+      toolsRow.className = 'bt-hud-tools-row';
+      const downloadBtn = document.createElement('button');
+      downloadBtn.className = 'bt-btn-download-zip';
+      downloadBtn.id = 'bt-btn-download-runner';
+      downloadBtn.setAttribute('title', 'Download Standalone Desktop Auto-Apply Runner (.zip)');
+      downloadBtn.appendChild(this.createSvg(12, 12, '0 0 24 24', '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>'));
+      const dlText = document.createElement('span');
+      dlText.textContent = 'Download Desktop Runner (ZIP)';
+      downloadBtn.appendChild(dlText);
+      toolsRow.appendChild(downloadBtn);
+
       body.appendChild(info);
       body.appendChild(feed);
       body.appendChild(actions);
+      body.appendChild(toolsRow);
 
       panel.appendChild(header);
       panel.appendChild(body);
@@ -389,8 +559,92 @@
       pill.appendChild(pillDot);
       pill.appendChild(pillText);
 
+      // 4. Modal 1: Confirmation Modal
+      const confirmOverlay = document.createElement('div');
+      confirmOverlay.className = 'bt-hud-overlay';
+      confirmOverlay.id = 'bt-confirm-overlay';
+
+      const confirmModal = document.createElement('div');
+      confirmModal.className = 'bt-hud-modal-card';
+      confirmModal.innerHTML = `
+        <div class="bt-modal-top">
+          <span class="bt-modal-heading">Confirm Package Download</span>
+          <button class="bt-hud-close" id="bt-confirm-modal-close">&times;</button>
+        </div>
+        <div class="bt-modal-content">
+          <p>Download the standalone <strong>BioTailr Desktop Auto-Apply Runner</strong> package (<code>biotailr-desktop-runner.zip</code>)?</p>
+          <div class="bt-modal-list">
+            <div class="bt-modal-list-item"><span class="bt-list-bullet"></span><span>Direct Chrome DevTools Protocol automation over WebSocket</span></div>
+            <div class="bt-modal-list-item"><span class="bt-list-bullet"></span><span>Strict enforcement of candidate rules (1 college, 1 school, max 3 experiences)</span></div>
+            <div class="bt-modal-list-item"><span class="bt-list-bullet"></span><span>Pre-configured candidate profile with zero npm dependencies</span></div>
+          </div>
+        </div>
+        <div class="bt-modal-bottom">
+          <button class="bt-btn-secondary" id="bt-confirm-cancel-btn">Cancel</button>
+          <button class="bt-btn-primary" id="bt-confirm-dl-btn">Confirm &amp; Download</button>
+        </div>
+      `;
+      confirmOverlay.appendChild(confirmModal);
+
+      // 5. Modal 2: Instructions Modal
+      const instructionsOverlay = document.createElement('div');
+      instructionsOverlay.className = 'bt-hud-overlay';
+      instructionsOverlay.id = 'bt-instructions-overlay';
+
+      const instructionsModal = document.createElement('div');
+      instructionsModal.className = 'bt-hud-modal-card';
+      instructionsModal.innerHTML = `
+        <div class="bt-modal-top">
+          <span class="bt-modal-heading">Automation Runner Setup &amp; Execution</span>
+          <button class="bt-hud-close" id="bt-instructions-modal-close">&times;</button>
+        </div>
+        <div class="bt-modal-content">
+          <div class="bt-step-block">
+            <span class="bt-step-index">1</span>
+            <div class="bt-step-details">
+              <div class="bt-step-name">Extract the ZIP Archive</div>
+              <div class="bt-step-instructions">Extract <code>biotailr-desktop-runner.zip</code> to any folder on your computer.</div>
+            </div>
+          </div>
+          <div class="bt-step-block">
+            <span class="bt-step-index">2</span>
+            <div class="bt-step-details">
+              <div class="bt-step-name">Launch Chrome in Debugging Mode</div>
+              <div class="bt-step-instructions">
+                Windows: Double-click <code>start-chrome-debug.bat</code><br>
+                Terminal: <span class="bt-inline-cmd">chrome --remote-debugging-port=9222</span>
+              </div>
+            </div>
+          </div>
+          <div class="bt-step-block">
+            <span class="bt-step-index">3</span>
+            <div class="bt-step-details">
+              <div class="bt-step-name">Sign into LinkedIn &amp; Open Jobs Feed</div>
+              <div class="bt-step-instructions">In the newly opened debugging Chrome window, log in to LinkedIn and navigate to your Easy Apply search feed.</div>
+            </div>
+          </div>
+          <div class="bt-step-block">
+            <span class="bt-step-index">4</span>
+            <div class="bt-step-details">
+              <div class="bt-step-name">Run Autonomous Auto-Apply</div>
+              <div class="bt-step-instructions">
+                Windows: Double-click <code>start-runner.bat</code><br>
+                Terminal: <span class="bt-inline-cmd">node apply-runner.js</span><br>
+                Candidate data can be adjusted in <code>candidate-profile.json</code>.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bt-modal-bottom">
+          <button class="bt-btn-primary" id="bt-instructions-done-btn">Understood &amp; Close</button>
+        </div>
+      `;
+      instructionsOverlay.appendChild(instructionsModal);
+
       host.appendChild(panel);
       host.appendChild(pill);
+      host.appendChild(confirmOverlay);
+      host.appendChild(instructionsOverlay);
 
       document.body.appendChild(host);
       this.container = host;
@@ -405,6 +659,16 @@
       const closeBtn = this.container.querySelector('#bt-hud-close-btn');
       const autoBtn = this.container.querySelector('#bt-btn-auto-apply');
       const nextBtn = this.container.querySelector('#bt-btn-next-job');
+      const downloadBtn = this.container.querySelector('#bt-btn-download-runner');
+
+      const confirmOverlay = this.container.querySelector('#bt-confirm-overlay');
+      const confirmClose = this.container.querySelector('#bt-confirm-modal-close');
+      const confirmCancel = this.container.querySelector('#bt-confirm-cancel-btn');
+      const confirmDl = this.container.querySelector('#bt-confirm-dl-btn');
+
+      const instructionsOverlay = this.container.querySelector('#bt-instructions-overlay');
+      const instructionsClose = this.container.querySelector('#bt-instructions-modal-close');
+      const instructionsDone = this.container.querySelector('#bt-instructions-done-btn');
 
       if (!pill || !panel) return;
 
@@ -439,6 +703,59 @@
           }
         });
       }
+
+      // Download Flow: 1. Confirm -> 2. Download -> 3. Instructions
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+          confirmOverlay?.classList.add('open');
+        });
+      }
+
+      const closeConfirm = () => {
+        confirmOverlay?.classList.remove('open');
+      };
+
+      if (confirmClose) confirmClose.addEventListener('click', closeConfirm);
+      if (confirmCancel) confirmCancel.addEventListener('click', closeConfirm);
+
+      if (confirmDl) {
+        confirmDl.addEventListener('click', () => {
+          closeConfirm();
+          this.executeDownloadZip();
+          this.log('Triggered download of biotailr-desktop-runner.zip', 'PLAN');
+          instructionsOverlay?.classList.add('open');
+        });
+      }
+
+      const closeInstructions = () => {
+        instructionsOverlay?.classList.remove('open');
+      };
+
+      if (instructionsClose) instructionsClose.addEventListener('click', closeInstructions);
+      if (instructionsDone) instructionsDone.addEventListener('click', closeInstructions);
+    }
+
+    executeDownloadZip() {
+      if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({ action: 'DOWNLOAD_RUNNER_ZIP' }, (response) => {
+          if (!chrome.runtime.lastError && response?.ok) return;
+          this.triggerAnchorDownload();
+        });
+      } else {
+        this.triggerAnchorDownload();
+      }
+    }
+
+    triggerAnchorDownload() {
+      const url = (typeof chrome !== 'undefined' && chrome.runtime?.getURL)
+        ? chrome.runtime.getURL('downloads/biotailr-desktop-runner.zip')
+        : 'downloads/biotailr-desktop-runner.zip';
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'biotailr-desktop-runner.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
 
     updateJobInfo() {
