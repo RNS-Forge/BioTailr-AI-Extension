@@ -49,6 +49,8 @@
       "run_at": "document_idle",
       "exclude_matches": [
         "https://rns-forge.github.io/BioTailr-AI/*",
+        "http://localhost:8181/*",
+        "http://127.0.0.1:8181/*",
         "http://localhost:3000/*",
         "http://127.0.0.1:3000/*"
       ]
@@ -56,6 +58,8 @@
     {
       "matches": [
         "https://rns-forge.github.io/BioTailr-AI/*",
+        "http://localhost:8181/*",
+        "http://127.0.0.1:8181/*",
         "http://localhost:3000/*",
         "http://127.0.0.1:3000/*"
       ],

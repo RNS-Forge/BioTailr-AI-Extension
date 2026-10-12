@@ -10,12 +10,15 @@
 
   const ALLOWED_ORIGINS = [
     'https://rns-forge.github.io',
+    'http://localhost:8181',
+    'http://127.0.0.1:8181',
     'http://localhost:3000',
     'http://127.0.0.1:3000'
   ];
 
   // Origin verification
-  if (!ALLOWED_ORIGINS.includes(window.location.origin)) {
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (!ALLOWED_ORIGINS.includes(window.location.origin) && !isLocalhost) {
     console.warn('[BioTailr Bridge] Security notice: Origin not permitted:', window.location.origin);
     return;
   }
