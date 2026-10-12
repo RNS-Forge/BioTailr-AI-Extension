@@ -180,7 +180,7 @@ class LinkedInPlatform extends BasePlatform {
         onStatus(`[LinkedIn] Form values populated: ${filled} fields updated.`);
       }
 
-      // Check for any open typeahead/combobox dropdown options and select Coimbatore option
+      // Check for any open typeahead/combobox dropdown options and select candidate city option
       const openOptions = Array.from(document.querySelectorAll([
         '[role="listbox"] [role="option"]',
         'div[role="option"]',
@@ -193,8 +193,8 @@ class LinkedInPlatform extends BasePlatform {
 
       if (openOptions.length > 0) {
         onStatus('[LinkedIn] Selecting matched option from open dropdown...');
-        const coimbatoreFull = openOptions.find(o => /coimbatore.*tamil\s*nadu/i.test(o.innerText || ''));
-        const opt = coimbatoreFull || openOptions.find(o => /coimbatore/i.test(o.innerText || '')) || openOptions[0];
+        const targetCity = (this.context?.location || this.context?.city || '').toLowerCase();
+        const opt = openOptions.find(o => targetCity ? (o.innerText || '').toLowerCase().includes(targetCity) : false) || openOptions[0];
         try {
           opt.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
           opt.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));

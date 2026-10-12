@@ -31,7 +31,7 @@
   const mockTabTarget = {
     id: 101,
     url: 'https://www.linkedin.com/jobs/view/3892019482',
-    title: 'Senior Software Development Engineer (AI & Distributed Systems) - Axodian Technologies',
+    title: 'Senior Software Development Engineer (AI & Distributed Systems) - Tech Enterprise',
     status: 'complete'
   };
 

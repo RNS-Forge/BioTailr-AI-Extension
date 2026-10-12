@@ -145,34 +145,50 @@ class BioTailrApplyAgent {
   }
 
   /**
-   * 2. REASONING: Uses Gemini or Groq to synthesize actions aligned with Candidate Sanjay N & constraints
+   * 2. REASONING: Uses Gemini or Groq to synthesize actions aligned with Candidate profile & constraints
    */
   async reasonActions(screenState, candidateContext) {
     const p = candidateContext.personal || {};
-    const fullName = p.fullName || 'Sanjay N';
+    const exp = candidateContext.experience || {};
+    const edu = candidateContext.education || {};
+    const fullName = p.fullName || 'Candidate';
+    const candYears = String(exp.totalYears || '2');
+    const candCompany = exp.currentCompany || '';
+    const candTitle = exp.currentTitle || 'Software Engineer';
+    const candCity = p.city || p.location || p.address || '';
+    const candLinkedIn = p.linkedinUrl || '';
+    const candGithub = p.githubUrl || '';
+    const candPortfolio = p.portfolioUrl || p.website || '';
+    const candDegree = edu.degree || "Bachelor's Degree";
+    const candField = edu.fieldOfStudy || '';
+    const candInstitution = edu.institution || '';
+    const candGradYear = edu.graduationYear || edu.gradYear || '';
+    const candCurrentSalary = exp.currentSalary || '';
+    const candExpectedSalary = exp.expectedSalary || '';
+    const candNoticeDays = String(exp.noticePeriodDays || '15');
 
-    // Build the AI Agent Prompt
+    // Build the AI Agent Prompt dynamically
     const systemPrompt = `You are BioTailr Autonomous Job Apply Agent.
 Your job is to reason about the active application modal screen and output the exact form-filling actions and navigation decision.
 
 Candidate Persona:
 - Name: ${fullName}
-- Email: ${p.email || '2005sanjaynrs@gmail.com'}
-- Phone: ${p.phone || '+91 9361599018'}
-- City/Location: Coimbatore, Tamil Nadu, India
-- LinkedIn URL: https://www.linkedin.com/in/sanjay--n
-- GitHub URL: https://github.com/RNS-Forge
-- Portfolio URL: https://rns-forge.github.io/RNS_Professional_Profile/
-- Degree: Bachelor's Degree in Computer Science and Engineering (Anna University / SNS College of Technology, 2022-2026, GPA 8.5)
-- School: SRC Memorial Metric Higher Secondary School (12th Standard, 2020-2022)
-- Current Employer: Axodian (Software Development Engineer)
-- Current Salary / CTC: 800000 INR (8 LPA), Expected Salary / CTC: 1200000 INR (12 LPA)
-- Notice Period: 15 days
-- Work Authorization: Authorized in India, No Visa Sponsorship required
+- Email: ${p.email || ''}
+- Phone: ${p.phone || ''}
+- City/Location: ${candCity}
+- LinkedIn URL: ${candLinkedIn}
+- GitHub URL: ${candGithub}
+- Portfolio URL: ${candPortfolio}
+- Degree: ${candDegree}${candField ? ' in ' + candField : ''}${candInstitution ? ' (' + candInstitution + ')' : ''}${candGradYear ? ', ' + candGradYear : ''}
+- Current Employer: ${candCompany ? candCompany + ' (' + candTitle + ')' : candTitle}
+- Current Salary: ${candCurrentSalary}
+- Expected Salary: ${candExpectedSalary}
+- Notice Period: ${candNoticeDays} days
+- Work Authorization: Authorized, No Visa Sponsorship required
 
 STRICT USER RULES (MANDATORY):
 1. EXPERIENCE YEARS:
-   - For all questions asking for years of experience relating to resume/technical skills (Python, SQL, Full Stack, Generative AI, LLM, Software Development, Backend, Frontend, React, Database, etc.): ALWAYS ANSWER "2" (or "2 years").
+   - For all questions asking for years of experience relating to resume/technical skills (Python, SQL, Full Stack, Generative AI, LLM, Software Development, Backend, Frontend, React, Database, etc.): ALWAYS ANSWER "${candYears}" (or "${candYears} years").
    - For all other general experience questions: ALWAYS ANSWER "1" (or "1 year").
    - For "additional months" dropdowns: ALWAYS SELECT "0 month" or "0".
 2. ACCEPT FOR ALL:
@@ -185,7 +201,7 @@ STRICT USER RULES (MANDATORY):
 4. WORK EXPERIENCE PRUNING:
    - Keep maximum 3 work experiences. If there are 4 or more entries, remove extra ones beyond index 2.
 5. OPEN TEXT / WHY HIRE / EXPERIENCE TINKERING:
-   - Provide concise, confident, role-aligned answers highlighting 2+ years of full-stack engineering, microservices, and AI applications at Axodian.
+   - Provide concise, confident, role-aligned answers highlighting ${candYears}+ years of experience${candCompany ? ' at ' + candCompany : ''}.
 
 Output your decision strictly as valid JSON without markdown fences matching this schema:
 {
@@ -301,7 +317,13 @@ ${JSON.stringify(screenState.elements.map(e => ({
    */
   deterministicReasoning(screenState, context) {
     const p = context.personal || {};
-    const fullName = p.fullName || 'Sanjay N';
+    const exp = context.experience || {};
+    const edu = context.education || {};
+    const fullName = p.fullName || 'Candidate';
+    const candYears = String(exp.totalYears || '2');
+    const candCompany = exp.currentCompany || '';
+    const candTitle = exp.currentTitle || 'Software Engineer';
+    const candCity = p.city || p.location || p.address || '';
     const fieldUpdates = [];
     const pruneButtonIndices = [];
 
@@ -337,43 +359,43 @@ ${JSON.stringify(screenState.elements.map(e => ({
 
       if (el.tag === 'input' && ['text', 'number', 'tel', 'email', 'url', ''].includes(el.type)) {
         if (isExperienceCount) {
-          val = isTech ? '2' : '1';
+          val = isTech ? candYears : '1';
         } else if (/phone|mobile|contact/i.test(lbl)) {
-          val = p.phone || '+91 9361599018';
+          val = p.phone || '';
         } else if (/email/i.test(lbl)) {
-          val = p.email || '2005sanjaynrs@gmail.com';
+          val = p.email || '';
         } else if (/city|location|town|where.*based/i.test(lbl)) {
-          val = 'Coimbatore, Tamil Nadu, India';
+          val = candCity;
         } else if (/first\s*name/i.test(lbl) && !/city|location/i.test(lbl)) {
-          val = p.firstName || 'Sanjay';
+          val = p.firstName || fullName.split(' ')[0] || '';
         } else if (/last\s*name/i.test(lbl) && !/city|location/i.test(lbl)) {
-          val = p.lastName || 'N';
+          val = p.lastName || fullName.split(' ').slice(1).join(' ') || '';
         } else if (/linkedin/i.test(lbl)) {
-          val = p.linkedinUrl || 'https://www.linkedin.com/in/sanjay--n';
+          val = p.linkedinUrl || '';
         } else if (/portfolio|website|online.*url|other/i.test(lbl)) {
-          val = p.portfolioUrl || 'https://rns-forge.github.io/RNS_Professional_Profile/';
+          val = p.portfolioUrl || p.website || '';
         } else if (/github/i.test(lbl)) {
-          val = p.githubUrl || 'https://github.com/RNS-Forge';
+          val = p.githubUrl || '';
         } else if (/school|college|university|institution/i.test(lbl)) {
-          val = 'Anna University';
+          val = edu.institution || '';
         } else if (/degree|qualification/i.test(lbl)) {
-          val = "Bachelor's Degree";
+          val = edu.degree || "Bachelor's Degree";
         } else if (/field\s*of\s*study|major|department/i.test(lbl)) {
-          val = 'Computer Science and Engineering';
+          val = edu.fieldOfStudy || '';
         } else if (/headline/i.test(lbl)) {
-          val = 'Generative AI & Full Stack Engineer';
+          val = candTitle;
         } else if (/income.*expectation/i.test(lbl)) {
-          val = '1,200,000 INR (12 LPA)';
+          val = exp.expectedSalary || '';
         } else if (/current.*salary|current.*ctc/i.test(lbl)) {
-          val = '800,000 INR (8 LPA)';
+          val = exp.currentSalary || '';
         } else if (/expected.*salary|expected.*ctc/i.test(lbl)) {
-          val = '1,200,000 INR (12 LPA)';
+          val = exp.expectedSalary || '';
         } else if (/organisation|organization|company/i.test(lbl)) {
-          val = 'Axodian';
+          val = candCompany;
         } else if (/designation|job.*title/i.test(lbl)) {
-          val = 'Full Stack & AI Engineer';
+          val = candTitle;
         } else if (/notice/i.test(lbl)) {
-          val = '15';
+          val = String(exp.noticePeriodDays || '15');
         } else if (!el.currentValue) {
           val = fullName;
         }
@@ -383,15 +405,16 @@ ${JSON.stringify(screenState.elements.map(e => ({
         }
       } else if (el.tag === 'textarea') {
         if (/notice/i.test(lbl)) {
-          val = '15 days';
+          val = `${exp.noticePeriodDays || '15'} days`;
         } else if (/current.*salary|current.*ctc/i.test(lbl)) {
-          val = '800,000 INR (8 LPA)';
+          val = exp.currentSalary || '';
         } else if (/expected.*salary|expected.*ctc/i.test(lbl)) {
-          val = '1,200,000 INR (12 LPA)';
+          val = exp.expectedSalary || '';
         } else if (/tinkering|ai.*automation|software.*engineering/i.test(lbl)) {
-          val = '2+ years of hands-on experience building full-stack software, agentic AI systems, LLM automation pipelines, and scalable backend microservices at Axodian. Deeply proficient in Python, FastAPI, React, modern Claude/OpenAI APIs, and autonomous agent workflows.';
+          val = `${candYears}+ years of hands-on experience building scalable software systems${candCompany ? ' at ' + candCompany : ''}. Proficient in modern engineering practices, APIs, and automation workflows.`;
         } else if (!el.currentValue) {
-          val = `Dear Hiring Team,\n\nI am excited to apply for this engineering role. With 2+ years of production experience architecting high-performance Python backends, agentic AI workflows, and modern web applications at Axodian, I have a strong track record of shipping resilient, high-impact systems.\n\nSincerely,\n${fullName}`;
+          const candContact = [p.phone, p.email].filter(Boolean).join(' | ');
+          val = `Dear Hiring Team,\n\nI am excited to apply for this engineering role. With ${candYears}+ years of experience architecting high-performance software systems and modern applications, I have a strong track record of shipping reliable, high-impact solutions.\n\nSincerely,\n${fullName}${candContact ? '\n' + candContact : ''}`;
         }
         if (val !== null) {
           fieldUpdates.push({ elementIndex: el.index, value: val });
@@ -491,8 +514,8 @@ ${JSON.stringify(screenState.elements.map(e => ({
         if (el.getAttribute('role') === 'combobox' || (el.id && el.id.includes('typeahead'))) {
           await new Promise(r => setTimeout(r, 250));
           const options = Array.from(document.querySelectorAll('[role="listbox"] [role="option"], .basic-typeahead__selectable, div[class*="typeahead"] div, .search-basic-typeahead__results li, ul[id*="typeahead"] li'));
-          const targetOpt = options.find(o => /coimbatore.*tamil\s*nadu/i.test(o.innerText || ''))
-            || options.find(o => /coimbatore/i.test(o.innerText || ''))
+          const targetLocStr = (this.context?.location || this.context?.city || '').toLowerCase();
+          const targetOpt = options.find(o => targetLocStr ? (o.innerText || '').toLowerCase().includes(targetLocStr) : false)
             || options[0];
           if (targetOpt) {
             try { targetOpt.click(); } catch(e) {}

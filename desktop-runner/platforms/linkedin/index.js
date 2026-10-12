@@ -128,8 +128,8 @@ class LinkedInPlatform extends BasePlatform {
     // 4. Solve all inputs, selects, radios, checkboxes, and sub-forms
     await solveFormFields(this.ws, this.cdpEval, this.profile);
 
-    // 5. Ensure location typeahead dropdown is solved with Coimbatore, Tamil Nadu, India
-    await solveLocationTypeahead(this.ws, this.cdpEval);
+    // 5. Ensure location typeahead dropdown is solved with candidate target location
+    await solveLocationTypeahead(this.ws, this.cdpEval, this.profile?.personal?.city || this.profile?.personal?.location || '');
 
     // 6. Check if delete experience triggered confirmation dialog and clear it
     await handleRemoveConfirmationDialog(this.ws, this.cdpEval);

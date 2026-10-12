@@ -5,12 +5,22 @@
 
 class AutoApplyOrchestrator {
   constructor() {
+    const safeInstantiate = (cls) => {
+      try {
+        if (typeof cls === 'function') return new cls();
+      } catch (e) {}
+      return null;
+    };
+
     this.platforms = [
-      new (window.LinkedInPlatform || LinkedInPlatform)(),
-      new (window.IndeedPlatform || IndeedPlatform)(),
-      new (window.GreenhousePlatform || GreenhousePlatform)(),
-      new (window.LeverPlatform || LeverPlatform)()
-    ];
+      safeInstantiate(typeof window !== 'undefined' ? window.LinkedInPlatform : (typeof LinkedInPlatform !== 'undefined' ? LinkedInPlatform : null)),
+      safeInstantiate(typeof window !== 'undefined' ? window.IndeedPlatform : (typeof IndeedPlatform !== 'undefined' ? IndeedPlatform : null)),
+      safeInstantiate(typeof window !== 'undefined' ? window.NaukriPlatform : (typeof NaukriPlatform !== 'undefined' ? NaukriPlatform : null)),
+      safeInstantiate(typeof window !== 'undefined' ? window.YCPlatform : (typeof YCPlatform !== 'undefined' ? YCPlatform : null)),
+      safeInstantiate(typeof window !== 'undefined' ? window.FounditPlatform : (typeof FounditPlatform !== 'undefined' ? FounditPlatform : null)),
+      safeInstantiate(typeof window !== 'undefined' ? window.GreenhousePlatform : (typeof GreenhousePlatform !== 'undefined' ? GreenhousePlatform : null)),
+      safeInstantiate(typeof window !== 'undefined' ? window.LeverPlatform : (typeof LeverPlatform !== 'undefined' ? LeverPlatform : null))
+    ].filter(Boolean);
   }
 
   /**

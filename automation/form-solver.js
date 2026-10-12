@@ -115,12 +115,12 @@ class FastFormSolver {
     const l = fieldLabel;
 
     // Address & Location (prioritized to prevent false name matches)
-    if (/street\s*address|address\s*line|home\s*address/i.test(l)) return p.address || p.location || 'Coimbatore, Tamil Nadu, India';
+    if (/street\s*address|address\s*line|home\s*address/i.test(l)) return p.address || p.location || p.city || '';
     if (/location|city|town|metro|area|where/i.test(l) || (/combobox|typeahead/i.test(l) && !/company|title|school|college|degree|skill|headline|name/i.test(l))) {
-      return p.location || p.city || 'Coimbatore, Tamil Nadu, India';
+      return p.location || p.city || '';
     }
-    if (/state|province|region/i.test(l)) return p.state || 'Tamil Nadu';
-    if (/postal|zip|pin\s*code/i.test(l)) return p.postalCode || '641001';
+    if (/state|province|region/i.test(l)) return p.state || '';
+    if (/postal|zip|pin\s*code/i.test(l)) return p.postalCode || '';
     if (/country/i.test(l)) return p.country || 'India';
 
     // Contact & Name (guarded against location fields)
@@ -131,9 +131,9 @@ class FastFormSolver {
     if (/phone|mobile|cell|contact\s*number/i.test(l)) return p.phone;
 
     // URLs & Links
-    if (/linkedin/i.test(l)) return p.linkedinUrl || 'https://www.linkedin.com/in/sanjay--n';
-    if (/github/i.test(l)) return p.githubUrl || 'https://github.com/RNS-Forge';
-    if (/portfolio|website|personal\s*site|web\s*site|online.*url/i.test(l)) return p.portfolioUrl || 'https://rns-forge.github.io/RNS_Professional_Profile/';
+    if (/linkedin/i.test(l)) return p.linkedinUrl || '';
+    if (/github/i.test(l)) return p.githubUrl || '';
+    if (/portfolio|website|personal\s*site|web\s*site|online.*url/i.test(l)) return p.portfolioUrl || '';
 
     // Months of experience
     if (/additional\s*month|month/i.test(l) && !/notice/i.test(l)) return '0 month';
@@ -144,111 +144,118 @@ class FastFormSolver {
     if (/security\s*clearance/i.test(l)) return w.securityClearance || 'No';
     if (/visa\s*status/i.test(l)) return w.currentVisaStatus || 'Citizen';
 
-    // Experience & Stats: 2 years if related to resume / core tech, 1 year for all other general experience
+    // Experience & Stats: totalYears from profile if available
+    const candTotalYears = String(exp.totalYears || '2');
     if (/years.*experience|experience.*years|how\s*many\s*years|number\s*of\s*years|^years$/i.test(l) && !/salary|ctc|compensation|notice|grad/i.test(l)) {
       if (/resume|python|sql|full\s*stack|fullstack|ai|artificial|developer|engineer|software|backend|frontend|react|node|fastapi|javascript|typescript|database|cloud|aws|docker|git|api|web|llm/i.test(l)) {
-        return '2';
+        return candTotalYears;
       }
       return '1';
     }
     if (/notice\s*period|how\s*soon.*start/i.test(l)) return exp.noticePeriodDays || '15';
-    if (/current\s*salary|current\s*ctc|current\s*compensation/i.test(l)) return exp.currentSalary || '800000';
-    if (/expected\s*salary|expected\s*ctc|salary\s*expectation/i.test(l)) return exp.expectedSalary || '1200000';
-    if (/company|employer|organization/i.test(l)) return exp.currentCompany || 'Axodian';
-    if (/title|role|position|designation/i.test(l)) return exp.currentTitle || 'Software Development Engineer';
+    if (/current\s*salary|current\s*ctc|current\s*compensation/i.test(l)) return exp.currentSalary || '';
+    if (/expected\s*salary|expected\s*ctc|salary\s*expectation/i.test(l)) return exp.expectedSalary || '';
+    if (/company|employer|organization/i.test(l)) return exp.currentCompany || '';
+    if (/title|role|position|designation/i.test(l)) return exp.currentTitle || 'Software Engineer';
     if (/industry/i.test(l)) return 'Information Technology and Services';
 
     // Education
-    if (/gpa|cgpa|grade/i.test(l)) return edu.gpa || '8.5';
-    if (/graduation\s*year|year\s*of\s*completion/i.test(l)) return edu.gradYear || '2026';
+    if (/gpa|cgpa|grade/i.test(l)) return edu.gpa || '';
+    if (/graduation\s*year|year\s*of\s*completion/i.test(l)) return edu.graduationYear || edu.gradYear || '';
     if (/degree|qualification|highest\s*level\s*of\s*education/i.test(l)) return edu.degree || "Bachelor's Degree";
-    if (/field\s*of\s*study|major|department/i.test(l)) return edu.fieldOfStudy || 'Computer Science and Engineering';
-    if (/university|college|institution|school/i.test(l)) return edu.institution || 'Anna University';
+    if (/field\s*of\s*study|major|department/i.test(l)) return edu.fieldOfStudy || '';
+    if (/university|college|institution|school/i.test(l)) return edu.institution || '';
 
     // Diversity & EEO
-    if (/gender|sex/i.test(l)) return eeo.gender || 'Male';
+    if (/gender|sex/i.test(l)) return eeo.gender || 'Decline to self-identify';
     if (/veteran/i.test(l)) return eeo.veteranStatus || 'No';
     if (/disability/i.test(l)) return eeo.disabilityStatus || 'No';
-    if (/race|ethnicity/i.test(l)) return eeo.raceEthnicity || 'Asian';
+    if (/race|ethnicity/i.test(l)) return eeo.raceEthnicity || 'Decline to self-identify';
 
     // Common Open Questions
     if (/why\s*work|why\s*join|interest\s*in/i.test(l)) {
-      return ans.whyWorkHere || `I am excited about this opportunity because my background in full-stack engineering, microservices, and Generative AI directly aligns with your technical mission. I thrive in high-impact environments solving complex scalability challenges.`;
+      return ans.whyWorkHere || `I am excited about this opportunity because my background in full-stack engineering and software systems directly aligns with your technical mission. I thrive in high-impact environments solving complex scalability challenges.`;
     }
     if (/strength|skill|core\s*competenc/i.test(l)) {
-      return ans.strengths || `Full-Stack Architecture, Python & TypeScript Microservices, Generative AI & Agentic Workflows, SQL/PostgreSQL Performance Optimization, and High-Speed Web Applications.`;
+      return ans.strengths || `Full-Stack Architecture, Clean Code, Scalable Microservices, API Design, and High-Speed Web Applications.`;
     }
     if (/cover\s*letter/i.test(l)) {
-      return ans.coverLetter || `Dear Hiring Team,\n\nI am writing to express my strong interest in the AI / Software Engineering role. With 2+ years of specialized experience developing high-performance Python backends, agentic AI workflows, and modern full-stack systems, I have a proven track record of architecting scalable systems and delivering measurable impact.\n\nAt Axodian, I led the development and optimization of mission-critical platforms with 99.9% uptime. My technical foundation spans Generative AI, LLMs, RESTful API design, database query optimization, and responsive frontend systems.\n\nI look forward to discussing how my experience can contribute to your engineering objectives.\n\nSincerely,\n${p.fullName || 'Sanjay N'}\n${p.phone || '+91 9361599018'} | ${p.email || '2005sanjaynrs@gmail.com'}`;
+      const candCompany = exp.currentCompany ? `At ${exp.currentCompany}, I contributed to high-impact software systems and core engineering workflows.` : '';
+      const candContact = [p.phone, p.email].filter(Boolean).join(' | ');
+      return ans.coverLetter || `Dear Hiring Team,\n\nI am writing to express my strong interest in this engineering role. With ${candTotalYears}+ years of experience developing high-performance software systems and modern web applications, I have a track record of architecting scalable systems and delivering measurable impact.\n\n${candCompany}\n\nI look forward to discussing how my experience can contribute to your engineering objectives.\n\nSincerely,\n${p.fullName || 'Candidate'}${candContact ? `\n${candContact}` : ''}`;
     }
     if (/summary|about\s*yourself/i.test(l)) {
-      return ans.summary || `${p.fullName || 'Sanjay N'} — Experienced Full Stack and Generative AI Engineer specializing in Python, scalable microservices, LLM agent architectures, and high-performance database engineering.`;
+      return ans.summary || `${p.fullName || 'Candidate'} — Experienced ${exp.currentTitle || 'Software Engineer'} specializing in scalable systems, clean architecture, and modern full-stack development.`;
     }
 
-    // Experience numeric fallback: 2 if related to resume skills, otherwise 1
+    // Experience numeric fallback
     if (/years.*experience|experience.*years|how\s*many\s*years|number\s*of\s*years/i.test(l) && !/salary|ctc|compensation|notice/i.test(l)) {
       if (/resume|python|sql|full\s*stack|fullstack|ai|artificial|developer|engineer|software|backend|frontend|react|node|fastapi|javascript|typescript|database|cloud|aws|docker|git|api|web|llm/i.test(l)) {
-        return '2';
+        return candTotalYears;
       }
       return '1';
     }
 
-    // Universal AI-generated response for Sanjay for all remaining text input boxes
-    return this.generateAiTextForSanjay(l, context);
+    // Universal AI-generated response for candidate for all remaining text input boxes
+    return this.generateAiCandidateText(l, context);
   }
 
   /**
-   * Generates intelligent, role-aligned candidate text for any open input box for Sanjay N
+   * Generates intelligent, role-aligned candidate text for any open input box
    */
-  static generateAiTextForSanjay(fieldLabel = '', context = {}) {
+  static generateAiCandidateText(fieldLabel = '', context = {}) {
     const l = (fieldLabel || '').toLowerCase();
     const p = context.personal || {};
     const exp = context.experience || {};
-    const fullName = p.fullName || 'Sanjay N';
+    const fullName = p.fullName || 'Candidate';
+    const candTitle = exp.currentTitle || 'Software Engineer';
+    const candYears = String(exp.totalYears || '2');
+    const candLoc = p.city || p.location || p.address || '';
 
-    // Numeric inputs: 2 if related to resume/core skills, otherwise 1
+    // Numeric inputs
     if (/years.*experience|experience.*years|how\s*many\s*years|count|months|period|gpa|ctc|salary/i.test(l)) {
-      if (/salary|compensation|ctc/i.test(l)) return exp.expectedSalary || '1200000';
+      if (/salary|compensation|ctc/i.test(l)) return exp.expectedSalary || '';
       if (/notice/i.test(l)) return exp.noticePeriodDays || '15';
-      if (/gpa/i.test(l)) return '8.5';
+      if (/gpa/i.test(l)) return '';
       if (/resume|python|sql|full\s*stack|fullstack|ai|artificial|developer|engineer|software|backend|frontend|react|node|fastapi|javascript|typescript|database|cloud|aws|docker|git|api|web|llm/i.test(l)) {
-        return '2';
+        return candYears;
       }
       return '1';
     }
 
     // Technology and Domain questions
     if (/python/i.test(l)) {
-      return `2+ years of professional experience developing robust Python backends, FastAPI/Flask REST services, and high-throughput data processing pipelines.`;
+      return `${candYears}+ years of professional experience developing robust Python backends, REST services, and data processing pipelines.`;
     }
     if (/generative\s*ai|gen\s*ai|llm|agent|prompt|rag/i.test(l)) {
-      return `Extensive hands-on experience architecting agentic AI systems, prompt optimization, RAG knowledge retrieval, and production LLM integrations (Gemini, Claude, GPT).`;
+      return `Extensive hands-on experience architecting agentic AI systems, prompt optimization, and production LLM integrations.`;
     }
     if (/sql|database|postgres|mysql|relational|query/i.test(l)) {
-      return `2+ years designing optimized SQL queries, indexing, schema architecture, and high-performance transactional database systems.`;
+      return `${candYears}+ years designing optimized SQL queries, indexing, schema architecture, and high-performance transactional database systems.`;
     }
     if (/react|frontend|javascript|typescript|ui|web|full\s*stack/i.test(l)) {
-      return `Full Stack Software Engineer proficient in React, TypeScript, modern JavaScript, and building clean, responsive user interfaces with sub-100ms response times.`;
+      return `Proficient in React, TypeScript, modern JavaScript, and building clean, responsive user interfaces.`;
     }
     if (/cloud|aws|docker|kubernetes|devops|ci\/cd/i.test(l)) {
-      return `Demonstrated proficiency in Docker containerization, AWS cloud architecture, CI/CD automation pipelines, and scalable microservice infrastructure.`;
+      return `Demonstrated proficiency in Docker containerization, cloud architecture, and CI/CD automation pipelines.`;
     }
     if (/relocat|willing.*move/i.test(l)) {
-      return 'Yes, willing to relocate.';
+      return 'Yes, open to relocation.';
     }
     if (/remote|hybrid|onsite|on-site|work\s*mode|location/i.test(l)) {
-      return 'Coimbatore, Tamil Nadu, India (Open to on-site, hybrid, or remote)';
+      return candLoc ? `${candLoc} (Open to on-site, hybrid, or remote)` : 'Open to on-site, hybrid, or remote';
     }
     if (/why\s*hire|why\s*you|qualification|summary|about|describe|tell\s*me/i.test(l)) {
-      return `${fullName} is an experienced Full Stack and AI Engineer with 2+ years of proven impact delivering high-scale microservices, automated workflows, and production Generative AI applications.`;
+      return `${fullName} is an experienced ${candTitle} with ${candYears}+ years of proven impact delivering high-scale software and reliable applications.`;
     }
     if (/project|achievement|proud/i.test(l)) {
-      return `Spearheaded end-to-end development of AI-powered ATS resume matching systems and high-throughput web architectures delivering automated workflows with 99.9% reliability.`;
+      return `Spearheaded end-to-end development of high-throughput web architectures delivering automated workflows with high reliability.`;
     }
 
-    // Universal AI fallback for any input box for candidate Sanjay
-    return `${fullName} — Full Stack & Generative AI Engineer (2+ years experience) specializing in scalable architectures, Python, microservices, and AI-enabled software solutions.`;
+    // Universal AI fallback for any input box
+    return `${fullName} — ${candTitle} (${candYears}+ years experience) specializing in scalable architectures, clean code, and reliable software solutions.`;
   }
+
 
   /**
    * Automatically fill any form element based on candidate context
@@ -381,7 +388,7 @@ class FastFormSolver {
   /**
    * Attach a PDF file to an input[type="file"] element via DataTransfer
    */
-  static attachPdfBlob(fileInput, pdfBlob, filename = 'Sanjay_N_Resume_100_ATS.pdf') {
+  static attachPdfBlob(fileInput, pdfBlob, filename = 'Candidate_Resume_100_ATS.pdf') {
     if (!fileInput || !pdfBlob) return false;
     try {
       const file = new File([pdfBlob], filename, { type: 'application/pdf', lastModified: Date.now() });

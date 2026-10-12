@@ -20,6 +20,37 @@
     return;
   }
 
+  // Dynamic Candidate Profile Sync Bridge
+  // Automatically sync uploaded/parsed resume profile from web app into extension storage
+  function syncProfileToExtension(profile, resumeHtml) {
+    if (!profile || typeof profile !== 'object') return;
+    chrome.storage.local.set({
+      candidateProfile: profile,
+      biotailr_candidate_profile: profile,
+      biotailr_dynamic_user_profile: profile,
+      biotailr_dynamic_resume_html: resumeHtml || ''
+    }, () => {
+      console.log('[BioTailr Bridge] Dynamic candidate profile synchronized to extension storage:', profile.fullName || 'Candidate');
+    });
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+    if (event.data?.type === 'BIOTAILR_DYNAMIC_PROFILE_UPDATED' && event.data.profile) {
+      syncProfileToExtension(event.data.profile, event.data.resumeHtml);
+    }
+  });
+
+  // Attempt initial sync if profile is already stored in web app localStorage
+  try {
+    const cachedProfile = localStorage.getItem('biotailr_candidate_profile') || localStorage.getItem('biotailr_dynamic_user_profile');
+    if (cachedProfile) {
+      const parsed = JSON.parse(cachedProfile);
+      const cachedHtml = localStorage.getItem('biotailr_dynamic_resume_html') || '';
+      syncProfileToExtension(parsed, cachedHtml);
+    }
+  } catch (e) {}
+
   const urlParams = new URLSearchParams(window.location.search);
   const jobId = urlParams.get('extjob');
   const urlAuthKey = urlParams.get('authKey') || '';
@@ -111,7 +142,8 @@
         return;
       }
 
-      const { compiledHtml, fullDocumentHtml, filename, archetypeId, targetRole, atsScore } = event.data;
+      const { compiledHtml, fullDocumentHtml, filename, archetypeId, targetRole, atsScore, candidateName } = event.data;
+      const cleanCandidateName = (candidateName || 'Candidate').replace(/[^a-zA-Z0-9]/g, '_');
 
       // Relay authenticated result back to the extension background service worker
       chrome.runtime.sendMessage({
@@ -120,7 +152,7 @@
         authKey: expectedKey,
         compiledHtml,
         fullDocumentHtml: fullDocumentHtml || compiledHtml,
-        filename: filename || `Sanjay_N_${(targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`,
+        filename: filename || `${cleanCandidateName}_${(targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`,
         archetypeId,
         targetRole,
         atsScore: atsScore || 100

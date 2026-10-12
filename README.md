@@ -14,7 +14,7 @@
 
 ### 1. One-Step Scan & Direct Download
 - Click **SCAN & TAILOR** at the center to extract the job role, company, location, requirements, and technical skills from your active browser tab.
-- Automatically processes the role through the **BioTailr AI Engine** calibrated on Sanjay N's 4 authentic career tracks.
+- Automatically processes the role through the **BioTailr AI Engine** calibrated across key industry career tracks.
 - Guarantees **100% ATS score compliance** with quantified metrics, high-impact action verbs, and standard single-column formatting.
 - Instant direct download right inside the extension:
   - **Download PDF**: Vector-rendered, strictly 1-page A4 PDF export using bundled `html2pdf.bundle.min.js`.

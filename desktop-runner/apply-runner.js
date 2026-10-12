@@ -12,31 +12,31 @@ const Orchestrator = require('./core/orchestrator');
 // Load Candidate Profile Configuration
 let profile = {
   personal: {
-    fullName: 'Sanjay N',
-    firstName: 'Sanjay',
-    lastName: 'N',
-    email: '2005sanjaynrs@gmail.com',
-    phone: '+91 9361599018',
-    city: 'Coimbatore, Tamil Nadu, India',
-    linkedinUrl: 'https://www.linkedin.com/in/sanjay--n',
-    githubUrl: 'https://github.com/RNS-Forge',
-    portfolioUrl: 'https://rns-forge.github.io/RNS_Professional_Profile/'
+    fullName: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    city: '',
+    linkedinUrl: '',
+    githubUrl: '',
+    portfolioUrl: ''
   },
   workAuth: {
     authorizedInCountry: 'Yes',
     needSponsorship: 'No'
   },
   experience: {
-    totalYears: 2,
+    totalYears: 1,
     noticePeriodDays: 15,
-    currentTitle: 'Full Stack & AI Engineer',
-    currentCompany: 'Axodian',
-    currentSalary: '800,000 INR (8 LPA)',
-    expectedSalary: '1,200,000 INR (12 LPA)'
+    currentTitle: '',
+    currentCompany: '',
+    currentSalary: '',
+    expectedSalary: ''
   },
   education: {
-    degree: 'Bachelor of Technology - BTech',
-    institution: 'Anna University / SNS College of Technology'
+    degree: "Bachelor's Degree",
+    institution: ''
   },
   settings: {
     batchTarget: 0, // 0 = unlimited continuous apply

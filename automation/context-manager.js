@@ -5,20 +5,20 @@
 
 const DEFAULT_CANDIDATE_CONTEXT = {
   personal: {
-    fullName: 'Sanjay N',
-    firstName: 'Sanjay',
-    lastName: 'N',
-    email: '2005sanjaynrs@gmail.com',
-    phone: '+91 9361599018',
-    phoneCountryCode: '+91',
-    address: 'Coimbatore, Tamil Nadu',
-    city: 'Coimbatore',
-    state: 'Tamil Nadu',
-    postalCode: '641001',
-    country: 'India',
-    linkedinUrl: 'https://www.linkedin.com/in/sanjay--n',
-    githubUrl: 'https://github.com/RNS-Forge',
-    portfolioUrl: 'https://rns-forge.github.io/RNS_Professional_Profile/'
+    fullName: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    phoneCountryCode: '',
+    address: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: '',
+    linkedinUrl: '',
+    githubUrl: '',
+    portfolioUrl: ''
   },
   workAuth: {
     authorizedInCountry: 'Yes',
@@ -27,39 +27,74 @@ const DEFAULT_CANDIDATE_CONTEXT = {
     securityClearance: 'No'
   },
   experience: {
-    totalYears: '4',
-    currentTitle: 'Software Development Engineer',
-    currentCompany: 'Axodian',
+    totalYears: '1',
+    currentTitle: '',
+    currentCompany: '',
     noticePeriodDays: '15',
-    currentSalary: '800000',
-    expectedSalary: '1200000',
-    currency: 'INR'
+    currentSalary: '',
+    expectedSalary: '',
+    currency: 'USD'
   },
   education: {
     degree: "Bachelor's Degree",
-    degreeLevel: "Bachelor of Technology",
-    fieldOfStudy: 'Computer Science and Engineering',
-    institution: 'Anna University',
-    graduationYear: '2026',
-    gpa: '8.5'
+    degreeLevel: "Bachelor",
+    fieldOfStudy: '',
+    institution: '',
+    graduationYear: '',
+    gpa: ''
   },
   eeo: {
-    gender: 'Male',
-    raceEthnicity: 'Asian',
+    gender: 'Decline to self-identify',
+    raceEthnicity: 'Decline to self-identify',
     veteranStatus: 'No',
     disabilityStatus: 'No'
   },
   customAnswers: {
-    whyWorkHere: 'I am passionate about building scalable, high-throughput software and AI-driven platforms. My background in microservices, full-stack engineering, and high-compliance systems directly aligns with your technical mission.',
-    strengths: 'Full-stack software engineering, RESTful microservices, AI & LLM application architecture, automated test coverage, and strict performance optimization.',
-    summary: 'Results-oriented Software Development Engineer with deep expertise in scalable architecture, API design, and AI-enabled workflows.'
+    whyWorkHere: 'I am passionate about building scalable, high-quality software and AI-driven systems. My background and problem-solving skills align with your engineering mission.',
+    strengths: 'Software development, problem solving, system design, test automation, and rapid execution.',
+    summary: 'Dedicated and results-driven software engineer specializing in scalable system development and modern engineering practices.'
   }
 };
 
 const STORAGE_KEY = 'biotailr_candidate_context';
 
+function mapProfileToContext(raw) {
+  if (!raw || typeof raw !== 'object') return {};
+  const personal = raw.personal || {};
+  const exp = raw.experience || {};
+  const edu = raw.education || {};
+  const fullName = personal.fullName || raw.fullName || '';
+  const parts = fullName.split(/\s+/).filter(Boolean);
+
+  return {
+    personal: {
+      fullName: fullName,
+      firstName: personal.firstName || parts[0] || '',
+      lastName: personal.lastName || parts.slice(1).join(' ') || '',
+      email: personal.email || raw.email || '',
+      phone: personal.phone || raw.phone || '',
+      city: personal.city || personal.location || raw.location || '',
+      linkedinUrl: personal.linkedinUrl || raw.linkedinUrl || '',
+      githubUrl: personal.githubUrl || raw.githubUrl || '',
+      portfolioUrl: personal.portfolioUrl || raw.portfolioUrl || raw.website || ''
+    },
+    experience: {
+      totalYears: String(exp.totalYears || '1'),
+      currentTitle: exp.currentTitle || exp.title || '',
+      currentCompany: exp.currentCompany || exp.company || '',
+      noticePeriodDays: String(exp.noticePeriodDays || '15')
+    },
+    education: {
+      degree: edu.degree || '',
+      fieldOfStudy: edu.fieldOfStudy || '',
+      institution: edu.institution || edu.school || '',
+      graduationYear: String(edu.graduationYear || edu.gradYear || '')
+    }
+  };
+}
+
 /**
- * Load Candidate Context from chrome.storage.local (falls back to defaults)
+ * Load Candidate Context from chrome.storage.local (falls back to defaults or dynamic profile)
  */
 async function loadCandidateContext() {
   return new Promise((resolve) => {
@@ -73,12 +108,16 @@ async function loadCandidateContext() {
 
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       try {
-        chrome.storage.local.get([STORAGE_KEY], (res) => {
+        chrome.storage.local.get([STORAGE_KEY, 'candidateProfile', 'biotailr_candidate_profile', 'biotailr_dynamic_user_profile'], (res) => {
           if (resolved) return;
           resolved = true;
           clearTimeout(safetyTimer);
           if (res && res[STORAGE_KEY]) {
             resolve(deepMerge(DEFAULT_CANDIDATE_CONTEXT, res[STORAGE_KEY]));
+          } else if (res && (res.candidateProfile || res.biotailr_candidate_profile || res.biotailr_dynamic_user_profile)) {
+            const raw = res.candidateProfile || res.biotailr_candidate_profile || res.biotailr_dynamic_user_profile;
+            const mapped = mapProfileToContext(raw);
+            resolve(deepMerge(DEFAULT_CANDIDATE_CONTEXT, mapped));
           } else {
             resolve(DEFAULT_CANDIDATE_CONTEXT);
           }

@@ -697,9 +697,9 @@ function bindUIEvents() {
     btnDemo.addEventListener('click', () => {
       state.activeJobPageStatus = {
         isJobPage: true,
-        source: 'Demo Simulation (Axodian SDE)',
+        source: 'Demo Simulation (Target Role)',
         titlePreview: 'Senior Software Development Engineer',
-        companyPreview: 'Axodian Technologies'
+        companyPreview: 'Tech Enterprise'
       };
       applyJobStatusToUI(state.activeJobPageStatus);
       handleScanAndTailorJob(true);
@@ -923,7 +923,9 @@ function handleResumeReady(message) {
   setTimeout(async () => {
     job.compiledHtml = compiledHtml;
     job.fullDocumentHtml = fullDocumentHtml || compiledHtml;
-    job.filename = filename || `Sanjay_N_${(targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`;
+    const candName = (job.candidateName || job.compiledHtml?.match(/<h1[^>]*>([^<]+)<\/h1>/)?.[1] || 'Candidate').trim();
+    const safeCandidate = candName.replace(/[^a-zA-Z0-9]/g, '_');
+    job.filename = filename || `${safeCandidate}_${(targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`;
     job.archetypeId = archetypeId || 'developer';
     job.atsScore = atsScore || 100;
     job.status = 'ready';
@@ -1086,7 +1088,7 @@ async function executePageScan() {
 function getMockJobData() {
   return {
     title: 'Senior Software Development Engineer',
-    company: 'Axodian Technologies',
+    company: 'Tech Enterprise',
     location: 'Bangalore, KA (On-Site)',
     salary: '',
     employmentType: 'Full-Time',
@@ -1112,11 +1114,11 @@ function renderTailoredResumeCard(job, revisionNote = '') {
         '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
         '<span>100% ATS SCORE</span>' +
       '</div>' +
-      '<span class="calibrated-tag">Sanjay N Calibration</span>' +
+      '<span class="calibrated-tag">BioTailr Calibration</span>' +
     '</div>' +
     revBlock +
     '<div class="resume-meta-box">' +
-      '<div class="candidate-name">Sanjay N</div>' +
+      '<div class="candidate-name">' + escapeHtml(job.candidateName || '') + '</div>' +
       '<div class="target-role-badge">' + escapeHtml(job.targetRole) + '</div>' +
       '<div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">' + escapeHtml(trackName) + ' &bull; Exactly 1-Page A4</div>' +
     '</div>' +
@@ -1243,7 +1245,8 @@ function fitResumeToOnePage(element) {
 }
 
 function executeDirectPdfDownload(job) {
-  const filename = (job.filename || ('Sanjay_N_' + (job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_') + '_Resume')) + '.pdf';
+  const candName = (job.candidateName || 'Candidate').replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = (job.filename || (candName + '_' + (job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_') + '_Resume')) + '.pdf';
   const sandbox = document.getElementById('hidden-resume-sandbox');
   if (!sandbox) return;
 
@@ -1288,7 +1291,8 @@ function executeDirectPdfDownload(job) {
 }
 
 function executeDirectHtmlDownload(job) {
-  const filename = `${job.filename || `Sanjay_N_${(job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`}.html`;
+  const candName2 = (job.candidateName || 'Candidate').replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `${job.filename || `${candName2}_${(job.targetRole || 'BioTailr').replace(/[^a-zA-Z0-9]/g, '_')}_Resume`}.html`;
   const content = job.fullDocumentHtml || job.compiledHtml;
   const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -1623,7 +1627,7 @@ async function initContextView() {
   if (btnReset) {
     btnReset.addEventListener('click', async (e) => {
       e.preventDefault();
-      if (confirm('Reset candidate profile to authentic Sanjay N defaults?')) {
+      if (confirm('Reset candidate profile to defaults?')) {
         currentCandidateContext = await ctxManager.resetCandidateContext();
         populateContextForm(currentCandidateContext);
         showContextToast('Profile Reset');
@@ -1730,18 +1734,18 @@ function collectContextFromForm() {
 
   return {
     personal: {
-      fullName: getVal('ctx-full-name', 'Sanjay N'),
-      firstName: getVal('ctx-first-name', 'Sanjay'),
-      lastName: getVal('ctx-last-name', 'N'),
-      email: getVal('ctx-email', '2005sanjaynrs@gmail.com'),
-      phone: getVal('ctx-phone', '+91 9361599018'),
-      phoneCountryCode: '+91',
-      address: `${getVal('ctx-city', 'Coimbatore')}, ${getVal('ctx-country', 'India')}`,
-      city: getVal('ctx-city', 'Coimbatore'),
-      country: getVal('ctx-country', 'India'),
-      linkedinUrl: getVal('ctx-linkedin', 'https://www.linkedin.com/in/sanjay--n'),
-      githubUrl: getVal('ctx-github', 'https://github.com/RNS-Forge'),
-      portfolioUrl: getVal('ctx-portfolio', 'https://rns-forge.github.io/RNS_Professional_Profile/')
+      fullName: getVal('ctx-full-name', ''),
+      firstName: getVal('ctx-first-name', ''),
+      lastName: getVal('ctx-last-name', ''),
+      email: getVal('ctx-email', ''),
+      phone: getVal('ctx-phone', ''),
+      phoneCountryCode: '',
+      address: getVal('ctx-city', '') + (getVal('ctx-country', '') ? ', ' + getVal('ctx-country', '') : ''),
+      city: getVal('ctx-city', ''),
+      country: getVal('ctx-country', ''),
+      linkedinUrl: getVal('ctx-linkedin', ''),
+      githubUrl: getVal('ctx-github', ''),
+      portfolioUrl: getVal('ctx-portfolio', '')
     },
     workAuth: {
       authorizedInCountry: getVal('ctx-work-auth', 'Yes'),
@@ -1750,31 +1754,31 @@ function collectContextFromForm() {
       securityClearance: 'No'
     },
     experience: {
-      totalYears: getVal('ctx-total-years', '2'),
+      totalYears: getVal('ctx-total-years', '1'),
       noticePeriodDays: getVal('ctx-notice-period', '15'),
-      currentTitle: getVal('ctx-current-title', 'Software Development Engineer'),
-      currentCompany: getVal('ctx-current-company', 'Axodian'),
-      expectedSalary: getVal('ctx-expected-salary', '1200000'),
-      currentSalary: getVal('ctx-current-salary', '800000'),
-      currency: 'INR'
+      currentTitle: getVal('ctx-current-title', 'Software Engineer'),
+      currentCompany: getVal('ctx-current-company', ''),
+      expectedSalary: getVal('ctx-expected-salary', ''),
+      currentSalary: getVal('ctx-current-salary', ''),
+      currency: getVal('ctx-currency', 'USD')
     },
     education: {
       degree: getVal('ctx-degree', "Bachelor's Degree"),
-      fieldOfStudy: getVal('ctx-field-of-study', 'Computer Science and Engineering'),
-      institution: getVal('ctx-institution', 'Anna University'),
-      gradYear: getVal('ctx-grad-year', '2026'),
-      gpa: '8.5'
+      fieldOfStudy: getVal('ctx-field-of-study', ''),
+      institution: getVal('ctx-institution', ''),
+      gradYear: getVal('ctx-grad-year', ''),
+      gpa: getVal('ctx-gpa', '')
     },
     eeo: {
-      gender: getVal('ctx-gender', 'Male'),
+      gender: getVal('ctx-gender', 'Decline to self-identify'),
       veteranStatus: getVal('ctx-veteran', 'No'),
       disabilityStatus: getVal('ctx-disability', 'No'),
-      raceEthnicity: 'Asian'
+      raceEthnicity: getVal('ctx-race', 'Decline to self-identify')
     },
     customAnswers: {
-      whyWorkHere: getVal('ctx-why-work-here', 'I am passionate about building scalable, high-throughput software and AI-driven platforms. My background in microservices, full-stack engineering, and high-compliance systems directly aligns with your technical mission.'),
-      strengths: getVal('ctx-strengths', 'Full-stack software engineering, RESTful microservices, AI & LLM application architecture, automated test coverage, and strict performance optimization.'),
-      summary: 'Results-oriented Software Development Engineer with 2+ years of expertise in distributed microservices, full-stack architecture, and AI-enabled software systems.'
+      whyWorkHere: getVal('ctx-why-work-here', ''),
+      strengths: getVal('ctx-strengths', ''),
+      summary: ''
     }
   };
 }
@@ -1788,18 +1792,18 @@ async function saveCurrentContextFromForm() {
 
   const updated = {
     personal: {
-      fullName: getVal('ctx-full-name', 'Sanjay N'),
-      firstName: getVal('ctx-first-name', 'Sanjay'),
-      lastName: getVal('ctx-last-name', 'N'),
-      email: getVal('ctx-email', '2005sanjaynrs@gmail.com'),
-      phone: getVal('ctx-phone', '+91 9361599018'),
-      phoneCountryCode: '+91',
-      address: `${getVal('ctx-city', 'Coimbatore')}, ${getVal('ctx-country', 'India')}`,
-      city: getVal('ctx-city', 'Coimbatore'),
-      country: getVal('ctx-country', 'India'),
-      linkedinUrl: getVal('ctx-linkedin', 'https://www.linkedin.com/in/sanjay--n'),
-      githubUrl: getVal('ctx-github', 'https://github.com/RNS-Forge'),
-      portfolioUrl: getVal('ctx-portfolio', 'https://rns-forge.github.io/RNS_Professional_Profile/')
+      fullName: getVal('ctx-full-name', ''),
+      firstName: getVal('ctx-first-name', ''),
+      lastName: getVal('ctx-last-name', ''),
+      email: getVal('ctx-email', ''),
+      phone: getVal('ctx-phone', ''),
+      phoneCountryCode: '',
+      address: getVal('ctx-city', '') + (getVal('ctx-country', '') ? ', ' + getVal('ctx-country', '') : ''),
+      city: getVal('ctx-city', ''),
+      country: getVal('ctx-country', ''),
+      linkedinUrl: getVal('ctx-linkedin', ''),
+      githubUrl: getVal('ctx-github', ''),
+      portfolioUrl: getVal('ctx-portfolio', '')
     },
     workAuth: {
       authorizedInCountry: getVal('ctx-work-auth', 'Yes'),
@@ -1808,26 +1812,26 @@ async function saveCurrentContextFromForm() {
       securityClearance: 'No'
     },
     experience: {
-      totalYears: getVal('ctx-total-years', '4'),
+      totalYears: getVal('ctx-total-years', '1'),
       noticePeriodDays: getVal('ctx-notice-period', '15'),
-      currentTitle: getVal('ctx-current-title', 'Software Development Engineer'),
-      currentCompany: getVal('ctx-current-company', 'Axodian'),
-      expectedSalary: getVal('ctx-expected-salary', '1200000'),
-      currentSalary: getVal('ctx-current-salary', '800000'),
-      currency: 'INR'
+      currentTitle: getVal('ctx-current-title', 'Software Engineer'),
+      currentCompany: getVal('ctx-current-company', ''),
+      expectedSalary: getVal('ctx-expected-salary', ''),
+      currentSalary: getVal('ctx-current-salary', ''),
+      currency: getVal('ctx-currency', 'USD')
     },
     education: {
       degree: getVal('ctx-degree', "Bachelor's Degree"),
-      fieldOfStudy: getVal('ctx-field-of-study', 'Computer Science and Engineering'),
-      institution: getVal('ctx-institution', 'Anna University'),
-      gradYear: getVal('ctx-grad-year', '2026'),
-      gpa: '8.5'
+      fieldOfStudy: getVal('ctx-field-of-study', ''),
+      institution: getVal('ctx-institution', ''),
+      gradYear: getVal('ctx-grad-year', ''),
+      gpa: getVal('ctx-gpa', '')
     },
     eeo: {
-      gender: getVal('ctx-gender', 'Male'),
+      gender: getVal('ctx-gender', 'Decline to self-identify'),
       veteranStatus: getVal('ctx-veteran', 'No'),
       disabilityStatus: getVal('ctx-disability', 'No'),
-      raceEthnicity: 'Asian'
+      raceEthnicity: getVal('ctx-race', 'Decline to self-identify')
     },
     customAnswers: {
       whyWorkHere: getVal('ctx-why-work-here', ''),
@@ -2218,18 +2222,20 @@ async function generateFastApplyResumeBase64(context) {
 
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(18);
-      pdf.text(p.fullName || 'Sanjay N', 105, 18, { align: 'center' });
+      pdf.text(p.fullName || 'Candidate', 105, 18, { align: 'center' });
 
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
       pdf.setTextColor(13, 148, 136);
-      pdf.text(exp.currentTitle || 'Software Development Engineer', 105, 24, { align: 'center' });
+      pdf.text(exp.currentTitle || 'Software Engineer', 105, 24, { align: 'center' });
 
       pdf.setTextColor(71, 85, 105);
       pdf.setFontSize(9);
-      const contact = `${p.phone || '+91 9361599018'} | ${p.email || '2005sanjaynrs@gmail.com'} | ${p.city || 'Coimbatore'}, ${p.country || 'India'}`;
-      pdf.text(contact, 105, 29, { align: 'center' });
-      pdf.text(`${p.linkedinUrl || 'linkedin.com/in/sanjay--n'} | ${p.githubUrl || 'github.com/RNS-Forge'}`, 105, 34, { align: 'center' });
+      const contactParts = [p.phone, p.email, [p.city, p.country].filter(Boolean).join(', ')].filter(Boolean);
+      const contact = contactParts.join(' | ');
+      if (contact) pdf.text(contact, 105, 29, { align: 'center' });
+      const linkParts = [p.linkedinUrl, p.githubUrl].filter(Boolean);
+      if (linkParts.length) pdf.text(linkParts.join(' | '), 105, 34, { align: 'center' });
 
       // Divider line
       pdf.setDrawColor(15, 23, 42);
@@ -2276,11 +2282,12 @@ async function generateFastApplyResumeBase64(context) {
       y += 6;
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(10);
-      pdf.text(`${exp.currentTitle || 'Software Development Engineer'} - ${exp.currentCompany || 'Axodian'}`, 20, y);
+      pdf.text(`${exp.currentTitle || 'Software Development Engineer'}${exp.currentCompany ? ' - ' + exp.currentCompany : ''}`, 20, y);
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9);
       pdf.setTextColor(100, 116, 139);
-      pdf.text('2022 - Present | Coimbatore, India', 190, y, { align: 'right' });
+      const locText = [pers.city, pers.country].filter(Boolean).join(', ') || 'Remote';
+      pdf.text(`2022 - Present | ${locText}`, 190, y, { align: 'right' });
 
       y += 5;
       pdf.setTextColor(51, 65, 85);
@@ -2360,13 +2367,14 @@ function buildAtsResumeHtml(context, jobTitle = 'Software Development Engineer',
   const edu = context?.education || {};
   const ans = context?.customAnswers || {};
 
-  const name = p.fullName || 'Sanjay N';
-  const role = jobTitle || exp.currentTitle || 'Software Development Engineer';
-  const email = p.email || '2005sanjaynrs@gmail.com';
-  const phone = p.phone || '+91 9361599018';
-  const loc = `${p.city || 'Coimbatore'}, ${p.country || 'India'}`;
-  const linkedin = p.linkedinUrl || 'https://www.linkedin.com/in/sanjay--n';
-  const github = p.githubUrl || 'https://github.com/RNS-Forge';
+  const name = p.fullName || 'Candidate';
+  const role = jobTitle || exp.currentTitle || 'Software Engineer';
+  const email = p.email || '';
+  const phone = p.phone || '';
+  const locParts = [p.city, p.country].filter(Boolean);
+  const loc = locParts.join(', ');
+  const linkedin = p.linkedinUrl || '';
+  const github = p.githubUrl || '';
 
   return `<!DOCTYPE html>
 <html>
@@ -2529,9 +2537,9 @@ function buildAtsResumeHtml(context, jobTitle = 'Software Development Engineer',
       <div>
         <span class="item-title">${escapeHtml(exp.currentTitle || 'Software Development Engineer')}</span>
         <span> &bull; </span>
-        <span class="item-company">${escapeHtml(exp.currentCompany || 'Axodian')}</span>
+        <span class="item-company">${escapeHtml(exp.currentCompany || '')}</span>
       </div>
-      <span class="item-date">2022 &ndash; Present | Coimbatore, India</span>
+      <span class="item-date">2022 &ndash; Present | ${escapeHtml([pers.city, pers.country].filter(Boolean).join(', ') || 'Remote')}</span>
     </div>
     <ul class="bullet-list">
       <li>Architected distributed microservices and responsive web client interfaces serving 100,000+ monthly active requests with sub-80ms response latencies.</li>
